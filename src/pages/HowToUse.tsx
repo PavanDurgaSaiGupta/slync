@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Info, Github, Book, FileText, CheckSquare, Terminal, Download, Upload, ArrowLeft } from 'lucide-react';
+import { Info, Github, Book, FileText, CheckSquare, Terminal, Download, Upload, ArrowLeft, Key } from 'lucide-react';
 import GlitchText from '@/components/GlitchText';
 import NeonButton from '@/components/NeonButton';
 import MatrixRain from '@/components/MatrixRain';
@@ -103,24 +103,46 @@ const HowToUse = () => {
             <h2 className="text-xl font-bold text-matrix-primary mb-4">Getting Started</h2>
             <ol className="list-decimal list-inside space-y-4 text-matrix-primary/80">
               <li>
-                <span className="font-bold">Connect to GitHub:</span>
+                <span className="font-bold">GitHub Authentication:</span>
                 <p className="ml-6 mt-1">
-                  Generate a Personal Access Token with 'repo' scope from GitHub Settings → Developer settings → Personal access tokens.
-                  Use this token to authenticate with the application.
+                  There are two ways to authenticate with GitHub:
                 </p>
+                <ul className="ml-10 mt-2 space-y-3 list-disc">
+                  <li className="mt-1">
+                    <span className="font-bold text-matrix-primary">Personal Access Token (Recommended):</span>
+                    <ol className="ml-4 mt-1 list-decimal">
+                      <li>Visit GitHub Settings → Developer settings → <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-matrix-primary underline">Personal access tokens</a></li>
+                      <li>Generate a new token with <code className="bg-black/40 px-1 rounded">repo</code> scope</li>
+                      <li>Copy and paste the token in the Matrix Synapse Authentication page</li>
+                    </ol>
+                  </li>
+                  <li>
+                    <span className="font-bold text-matrix-primary">Using Repository URL:</span>
+                    <p className="ml-4 mt-1">
+                      On the Home page, enter your GitHub repository URL (e.g., <code className="bg-black/40 px-1 rounded">https://github.com/username/repo</code>) and click "Connect Repository". 
+                      <br />
+                      <span className="text-yellow-400 italic">Note: This requires you to already be authenticated with a personal access token.</span>
+                    </p>
+                  </li>
+                </ul>
               </li>
-              <li>
-                <span className="font-bold">Connect a Repository:</span>
+              <li className="mt-4">
+                <span className="font-bold">Required Repository Format:</span>
                 <p className="ml-6 mt-1">
-                  Enter your GitHub repository URL (e.g., https://github.com/username/repo). 
-                  The application will automatically create the necessary folders if they don't exist:
-                  <code className="block bg-black/50 p-2 rounded mt-1 font-mono text-sm">
-                    /bookmarks<br/>
-                    /todos<br/>
-                    /notes<br/>
-                    /config
-                  </code>
+                  Enter your GitHub repository URL exactly as shown in the browser:
                 </p>
+                <code className="block bg-black/50 p-2 rounded mt-1 font-mono text-sm ml-6">
+                  https://github.com/username/repo
+                </code>
+                <p className="ml-6 mt-1">
+                  The application will automatically create the necessary folders if they don't exist:
+                </p>
+                <code className="block bg-black/50 p-2 rounded mt-1 font-mono text-sm ml-6">
+                  /bookmarks<br/>
+                  /todos<br/>
+                  /notes<br/>
+                  /config
+                </code>
               </li>
               <li>
                 <span className="font-bold">Start Using Features:</span>
@@ -129,6 +151,38 @@ const HowToUse = () => {
                 </p>
               </li>
             </ol>
+          </motion.section>
+          
+          <motion.section variants={itemVariants} className="matrix-card">
+            <h2 className="text-xl font-bold text-matrix-primary mb-4">Troubleshooting GitHub Connection</h2>
+            <div className="space-y-3 text-matrix-primary/80">
+              <div>
+                <h3 className="text-matrix-primary font-bold flex items-center"><Key size={16} className="mr-1" /> Authentication Issues:</h3>
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>Ensure your Personal Access Token has the <code className="bg-black/40 px-1 rounded">repo</code> scope enabled</li>
+                  <li>For private repositories, you must use a token with appropriate permissions</li>
+                  <li>Check that your token has not expired (tokens can have expiration dates)</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-matrix-primary font-bold">Repository URL Format:</h3>
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>Use the exact format from your browser: <code className="bg-black/40 px-1 rounded">https://github.com/username/repo</code></li>
+                  <li>Do not include .git extension unless it appears in your browser URL</li>
+                  <li>Make sure the repository exists and you have appropriate permissions</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-matrix-primary font-bold">Common Error Messages:</h3>
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>"Not authenticated with GitHub" - You need to enter your personal access token first</li>
+                  <li>"Repository not found or access denied" - Check the URL and your permissions</li>
+                  <li>"Failed to create folder" - Verify your token has write access to the repository</li>
+                </ul>
+              </div>
+            </div>
           </motion.section>
           
           <motion.section variants={itemVariants}>

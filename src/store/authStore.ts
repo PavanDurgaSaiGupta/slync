@@ -245,9 +245,14 @@ export const useAuthStore = create<AuthState>()(
               throw new Error(`Path '${path}' is a directory, not a file`);
             }
             
-            // Decode base64 content
-            const content = Buffer.from(data.content, 'base64').toString('utf-8');
-            return { content, sha: data.sha };
+            // Type guard to check if data has content property before accessing it
+            if ('content' in data) {
+              // Decode base64 content
+              const content = Buffer.from(data.content, 'base64').toString('utf-8');
+              return { content, sha: data.sha };
+            } else {
+              throw new Error(`File at '${path}' does not contain readable content`);
+            }
           } catch (e) {
             if (e instanceof Error && e.message.includes('Not Found')) {
               return null; // File doesn't exist

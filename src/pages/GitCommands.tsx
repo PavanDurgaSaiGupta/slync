@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -91,8 +90,10 @@ Available commands:
           
           if (Array.isArray(data)) {
             output = 'Error: Path is a directory, not a file';
-          } else {
+          } else if ('content' in data) {
             output = Buffer.from(data.content, 'base64').toString('utf-8');
+          } else {
+            output = 'Error: File does not contain readable content';
           }
         } catch (e) {
           output = `Error: ${e instanceof Error ? e.message : 'File not found'}`;
