@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { GitHub, BookOpen, CheckSquare, FileText, Settings, Upload, Download, Terminal } from 'lucide-react';
+import { Github, BookOpen, CheckSquare, FileText, Settings, Upload, Download, Terminal } from 'lucide-react';
 
 import GlitchText from '@/components/GlitchText';
 import NeonButton from '@/components/NeonButton';
@@ -21,14 +20,12 @@ const Index: React.FC = () => {
   
   const { user, token, repo, connectRepo, logout } = useAuthStore();
   
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!user && !token) {
       navigate('/login');
     }
   }, [user, token, navigate]);
   
-  // Terminal typing animation
   useEffect(() => {
     if (!user) return;
     
@@ -41,7 +38,6 @@ const Index: React.FC = () => {
         setTypedText(prev => prev + text.charAt(index));
         index++;
         
-        // Random typing speed
         const delay = Math.random() * 50 + 30;
         timer = setTimeout(typeNextCharacter, delay);
       } else {
@@ -64,7 +60,6 @@ const Index: React.FC = () => {
     navigate(path);
   };
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -93,7 +88,6 @@ const Index: React.FC = () => {
         onChange={(themeNumber) => setTheme({ themeNumber })} 
       />
       
-      {/* Logout button */}
       {user && (
         <motion.button
           initial={{ opacity: 0 }}
@@ -121,7 +115,6 @@ const Index: React.FC = () => {
             </motion.div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Side - GitHub Connection */}
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -133,7 +126,7 @@ const Index: React.FC = () => {
                   className="matrix-card h-full"
                 >
                   <div className="flex items-center mb-4">
-                    <GitHub className="text-matrix-primary mr-3" />
+                    <Github className="text-matrix-primary mr-3" />
                     <h3 className="neon-text text-xl font-semibold">GitHub Repository Connection</h3>
                   </div>
                   
@@ -173,7 +166,6 @@ const Index: React.FC = () => {
                 </motion.div>
               </motion.div>
               
-              {/* Right Side - Terminal Output */}
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -216,7 +208,6 @@ const Index: React.FC = () => {
               </motion.div>
             </div>
             
-            {/* Navigation Cards */}
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -231,7 +222,7 @@ const Index: React.FC = () => {
                 { icon: <Upload />, title: "Import", path: "/import-export" },
                 { icon: <Download />, title: "Export", path: "/import-export" },
                 { icon: <Terminal />, title: "Git Commands", path: "/git-terminal" },
-                { icon: <GitHub />, title: "GitHub Sync", path: "/git-terminal" },
+                { icon: <Github />, title: "GitHub Sync", path: "/git-terminal" },
               ].map((item, index) => (
                 <motion.div
                   key={index}

@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { GitHub, KeyRound, ArrowRight } from 'lucide-react';
+import { Github, KeyRound, ArrowRight } from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
 import NeonInput from '@/components/NeonInput';
@@ -27,11 +26,8 @@ const Login: React.FC = () => {
     }
     
     try {
-      // Set the token in the store, which initializes Octokit
       setAuthToken(token);
       
-      // At this point, we would normally get the user information
-      // But since we don't have a real GitHub OAuth flow, we'll just simulate it
       setUser({
         username: 'matrix_user',
         email: email || 'user@matrix.com',
@@ -47,7 +43,6 @@ const Login: React.FC = () => {
   const handleLoginWithPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // This is a simulated login - in a real app, we would validate with a backend
     if (email && password) {
       setUser({
         username: 'matrix_user',
@@ -104,7 +99,6 @@ const Login: React.FC = () => {
           animate="visible"
           className="space-y-6"
         >
-          {/* Tab Selector */}
           <motion.div className="flex mb-6" variants={itemVariants}>
             <button 
               className="flex-1 py-2 border-b-2 border-matrix-primary text-matrix-primary"
@@ -119,7 +113,6 @@ const Login: React.FC = () => {
             </Link>
           </motion.div>
           
-          {/* Login Form */}
           <form onSubmit={handleLoginWithPassword}>
             <motion.div className="space-y-4" variants={containerVariants}>
               <motion.div variants={itemVariants}>
@@ -154,7 +147,6 @@ const Login: React.FC = () => {
             </motion.div>
           </form>
           
-          {/* Divider */}
           <motion.div 
             className="relative flex items-center py-4"
             variants={itemVariants}
@@ -164,7 +156,6 @@ const Login: React.FC = () => {
             <div className="flex-grow border-t border-matrix-primary/30"></div>
           </motion.div>
           
-          {/* GitHub Login */}
           <motion.div className="space-y-4" variants={containerVariants}>
             <motion.div variants={itemVariants}>
               <NeonInput
@@ -172,7 +163,7 @@ const Login: React.FC = () => {
                 placeholder="GitHub Personal Access Token"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                icon={<GitHub size={18} />}
+                icon={<Github size={18} />}
               />
             </motion.div>
             
@@ -182,7 +173,7 @@ const Login: React.FC = () => {
                 className="w-full"
                 disabled={isLoading}
               >
-                <GitHub size={18} className="inline mr-2" />
+                <Github size={18} className="inline mr-2" />
                 Connect with GitHub
               </NeonButton>
             </motion.div>

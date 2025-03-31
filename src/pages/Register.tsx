@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { GitHub, User, KeyRound, Mail, ArrowRight } from 'lucide-react';
+import { Github, User, KeyRound, Mail, ArrowRight } from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
 import NeonInput from '@/components/NeonInput';
@@ -200,7 +199,7 @@ const Register: React.FC = () => {
                 placeholder="GitHub Personal Access Token"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                icon={<GitHub size={18} />}
+                icon={<Github size={18} />}
               />
             </motion.div>
             
@@ -210,7 +209,7 @@ const Register: React.FC = () => {
                 className="w-full"
                 disabled={isLoading}
               >
-                <GitHub size={18} className="inline mr-2" />
+                <Github size={18} className="inline mr-2" />
                 Connect with GitHub
               </NeonButton>
             </motion.div>
