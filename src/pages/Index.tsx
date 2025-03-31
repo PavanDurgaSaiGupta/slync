@@ -24,7 +24,7 @@ const Index: React.FC = () => {
   
   useEffect(() => {
     if (!user && !token) {
-      navigate('/login');
+      navigate('/authentication');
     }
   }, [user, token, navigate]);
   
@@ -73,7 +73,6 @@ const Index: React.FC = () => {
     try {
       toast.loading("Connecting to repository...");
       await connectRepo(repoUrl);
-      toast.success("Repository connected successfully!");
     } catch (e) {
       console.error("Error connecting to repository:", e);
       toast.error(e instanceof Error ? e.message : "Failed to connect to repository");

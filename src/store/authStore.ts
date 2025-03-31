@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Octokit } from 'octokit';
+import { toast } from 'sonner';
 
 interface AuthState {
   user: {
@@ -31,6 +32,8 @@ interface AuthState {
   connectRepo: (repoUrl: string) => Promise<void>;
   createFolder: (folderPath: string) => Promise<void>;
   saveToRepo: (path: string, content: string, message: string) => Promise<void>;
+  getFileContent: (path: string) => Promise<{ content: string; sha: string } | null>;
+  getDirectoryContents: (path: string) => Promise<any[]>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -52,13 +55,16 @@ export const useAuthStore = create<AuthState>()(
       setIsLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
       
-      logout: () => set({ 
-        user: null, 
-        token: null,
-        repo: null,
-        octokit: null,
-        error: null 
-      }),
+      logout: () => {
+        toast.info('Logged out successfully');
+        set({ 
+          user: null, 
+          token: null,
+          repo: null,
+          octokit: null,
+          error: null 
+        });
+      },
       
       connectRepo: async (repoUrl: string) => {
         try {
@@ -98,12 +104,15 @@ export const useAuthStore = create<AuthState>()(
             await get().createFolder('notes');
             await get().createFolder('config');
             
+            toast.success('Repository connected successfully!');
+            
           } catch (e) {
             console.error('Error connecting to repository:', e);
             set({ 
               error: 'Repository not found or access denied',
               isLoading: false
             });
+            toast.error('Repository not found or access denied');
           }
         } catch (e) {
           console.error('Error in connectRepo:', e);
@@ -111,6 +120,7 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : 'Failed to connect to repository',
             isLoading: false
           });
+          toast.error(e instanceof Error ? e.message : 'Failed to connect to repository');
         }
       },
       
@@ -144,8 +154,10 @@ export const useAuthStore = create<AuthState>()(
                   content: Buffer.from(' ').toString('base64'),
                 });
                 console.log(`Created folder '${folderPath}'`);
+                toast.success(`Created folder '${folderPath}'`);
               } catch (createErr) {
                 console.error(`Error creating folder '${folderPath}':`, createErr);
+                toast.error(`Failed to create folder '${folderPath}'`);
                 throw new Error(`Failed to create folder '${folderPath}'`);
               }
             } else {
@@ -199,6 +211,7 @@ export const useAuthStore = create<AuthState>()(
           });
           
           set({ isLoading: false });
+          toast.success('Saved to repository successfully!');
           return;
         } catch (e) {
           console.error('Error in saveToRepo:', e);
@@ -206,6 +219,89 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : 'Failed to save to repository',
             isLoading: false
           });
+          toast.error(e instanceof Error ? e.message : 'Failed to save to repository');
+        }
+      },
+      
+      getFileContent: async (path: string) => {
+        try {
+          set({ isLoading: true, error: null });
+          const { octokit, repo } = get();
+          
+          if (!octokit || !repo) {
+            throw new Error('Not connected to a repository');
+          }
+          
+          try {
+            const { data } = await octokit.rest.repos.getContent({
+              owner: repo.owner,
+              repo: repo.name,
+              path,
+            });
+            
+            set({ isLoading: false });
+            
+            if (Array.isArray(data)) {
+              throw new Error(`Path '${path}' is a directory, not a file`);
+            }
+            
+            // Decode base64 content
+            const content = Buffer.from(data.content, 'base64').toString('utf-8');
+            return { content, sha: data.sha };
+          } catch (e) {
+            if (e instanceof Error && e.message.includes('Not Found')) {
+              return null; // File doesn't exist
+            }
+            throw e;
+          }
+        } catch (e) {
+          console.error('Error in getFileContent:', e);
+          set({ 
+            error: e instanceof Error ? e.message : `Failed to get content from '${path}'`,
+            isLoading: false
+          });
+          toast.error(e instanceof Error ? e.message : `Failed to get content from '${path}'`);
+          return null;
+        }
+      },
+      
+      getDirectoryContents: async (path: string) => {
+        try {
+          set({ isLoading: true, error: null });
+          const { octokit, repo } = get();
+          
+          if (!octokit || !repo) {
+            throw new Error('Not connected to a repository');
+          }
+          
+          try {
+            const { data } = await octokit.rest.repos.getContent({
+              owner: repo.owner,
+              repo: repo.name,
+              path,
+            });
+            
+            set({ isLoading: false });
+            
+            if (!Array.isArray(data)) {
+              throw new Error(`Path '${path}' is a file, not a directory`);
+            }
+            
+            return data;
+          } catch (e) {
+            if (e instanceof Error && e.message.includes('Not Found')) {
+              return []; // Directory doesn't exist or is empty
+            }
+            throw e;
+          }
+        } catch (e) {
+          console.error('Error in getDirectoryContents:', e);
+          set({ 
+            error: e instanceof Error ? e.message : `Failed to list contents from '${path}'`,
+            isLoading: false
+          });
+          toast.error(e instanceof Error ? e.message : `Failed to list contents from '${path}'`);
+          return [];
         }
       },
     }),

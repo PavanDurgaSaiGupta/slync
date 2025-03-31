@@ -36,6 +36,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.documentElement.style.setProperty('--theme-primary', `var(--theme-${theme.themeNumber}-primary)`);
     document.documentElement.style.setProperty('--theme-secondary', `var(--theme-${theme.themeNumber}-secondary)`);
     
+    // Apply animation classes
+    if (theme.enableCrtFlicker) {
+      document.documentElement.classList.add('enable-flicker');
+    } else {
+      document.documentElement.classList.remove('enable-flicker');
+    }
+    
   }, [theme]);
 
   const setTheme = (newTheme: Partial<ThemeType>) => {
