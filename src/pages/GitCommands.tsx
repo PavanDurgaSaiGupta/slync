@@ -3,286 +3,268 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { Terminal as TerminalIcon, ArrowLeft, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  Terminal, 
+  ArrowLeft, 
+  Code, 
+  Github, 
+  File, 
+  Folder, 
+  RefreshCw, 
+  Check, 
+  AlertTriangle, 
+  ChevronRight
+} from 'lucide-react';
 
-import NeonButton from '@/components/NeonButton';
-import NeonInput from '@/components/NeonInput';
 import GlitchText from '@/components/GlitchText';
+import NeonInput from '@/components/NeonInput';
+import NeonButton from '@/components/NeonButton';
 import MatrixRain from '@/components/MatrixRain';
 import { useTheme } from '@/hooks/useTheme';
 
-interface CommandResult {
-  command: string;
-  output: string;
-  success: boolean;
-  timestamp: Date;
+interface FileItem {
+  type: 'file' | 'dir' | 'symlink';
+  name: string;
+  path: string;
+  sha?: string;
+  size?: number;
+  content?: string;
+  encoding?: string;
 }
 
 const GitCommands: React.FC = () => {
   const [command, setCommand] = useState('');
-  const [history, setHistory] = useState<CommandResult[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
+  const [output, setOutput] = useState<string[]>([]);
+  const [currentPath, setCurrentPath] = useState('/');
+  const [isLoading, setIsLoading] = useState(false);
+  const [dirContents, setDirContents] = useState<FileItem[]>([]);
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [fileContent, setFileContent] = useState('');
   
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { repo, user, octokit } = useAuthStore();
+  const { octokit, user, repo } = useAuthStore();
   
   useEffect(() => {
-    if (!user) {
-      navigate('/authentication');
-      return;
+    if (repo) {
+      fetchDirectoryContents('/');
     }
-    
-    if (!repo) {
-      navigate('/');
-      toast.error('Please connect a repository first');
-      return;
-    }
-    
-    // Initial welcome message
-    setHistory([
-      {
-        command: '',
-        output: `Welcome to the Slync Git Terminal.\nConnected to repository: ${repo.owner}/${repo.name}\nType 'help' for available commands.`,
-        success: true,
-        timestamp: new Date()
-      }
-    ]);
-  }, [repo, user, navigate]);
+  }, [repo]);
   
-  const handleCommandSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchDirectoryContents = async (path: string) => {
+    if (!octokit || !repo) {
+      toast.error('Not authenticated or no repository connected');
+      return;
+    }
     
-    if (!command.trim() || isExecuting) return;
-    
-    const trimmedCommand = command.trim();
-    setHistory(prev => [...prev, {
-      command: trimmedCommand,
-      output: "Executing...",
-      success: true,
-      timestamp: new Date()
-    }]);
-    setCommand('');
-    setIsExecuting(true);
+    setIsLoading(true);
+    setCurrentPath(path);
     
     try {
-      const output = await executeCommand(trimmedCommand);
-      setHistory(prev => [
-        ...prev.slice(0, -1),
-        {
-          command: trimmedCommand,
-          output,
-          success: true,
-          timestamp: new Date()
-        }
-      ]);
+      const response = await octokit.rest.repos.getContent({
+        owner: repo.owner,
+        repo: repo.name,
+        path: path === '/' ? '' : path,
+      });
+      
+      const contents = Array.isArray(response.data) ? response.data : [response.data];
+      
+      setDirContents(contents.map(item => ({
+        type: item.type as 'file' | 'dir' | 'symlink',
+        name: item.name,
+        path: item.path,
+        sha: item.sha,
+        size: item.size,
+        content: 'content' in item ? item.content : undefined,
+        encoding: 'encoding' in item ? item.encoding : undefined
+      })));
+      
+      addToOutput(`Changed directory to ${path}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-      setHistory(prev => [
-        ...prev.slice(0, -1),
-        {
-          command: trimmedCommand,
-          output: `Error: ${errorMessage}`,
-          success: false,
-          timestamp: new Date()
-        }
-      ]);
+      console.error('Error fetching contents:', error);
+      addToOutput(`Error: Could not fetch directory contents for ${path}`);
+      toast.error(`Failed to fetch contents for ${path}`);
     } finally {
-      setIsExecuting(false);
+      setIsLoading(false);
     }
   };
   
-  const executeCommand = async (cmd: string): Promise<string> => {
-    if (!repo || !octokit) throw new Error("Not connected to a repository");
+  const viewFile = async (file: FileItem) => {
+    if (!octokit || !repo) return;
     
-    const cmdLower = cmd.toLowerCase();
-    const args = cmd.split(' ').slice(1);
+    setIsLoading(true);
+    setSelectedFile(file);
     
-    // Help command
-    if (cmdLower === 'help') {
-      return `
-Available commands:
-  - ls [path]             : List files in repository (default: root)
-  - cat <file_path>       : View file content
-  - create <path> <data>  : Create or update a file
-  - mkdir <path>          : Create a directory
-  - info                  : Show repository information
-  - help                  : Show this help message
-  - clear                 : Clear the terminal
-`;
-    }
-    
-    // Clear command
-    if (cmdLower === 'clear') {
-      setTimeout(() => setHistory([]), 0);
-      return "";
-    }
-    
-    // Show repo info
-    if (cmdLower === 'info') {
-      try {
-        const { data } = await octokit.rest.repos.get({
-          owner: repo.owner,
-          repo: repo.name
-        });
-        
-        return `
-Repository: ${data.full_name}
-Description: ${data.description || 'No description'}
-Visibility: ${data.visibility}
-Default branch: ${data.default_branch}
-Created: ${new Date(data.created_at).toLocaleString()}
-Last push: ${data.pushed_at ? new Date(data.pushed_at).toLocaleString() : 'Never'}
-Size: ${data.size} KB
-`;
-      } catch (error) {
-        throw new Error("Failed to fetch repository information");
-      }
-    }
-    
-    // List files
-    if (cmdLower.startsWith('ls')) {
-      const path = args.length > 0 ? args.join(' ') : '';
-      
-      try {
-        const { data } = await octokit.rest.repos.getContent({
+    try {
+      if (file.content && file.encoding === 'base64') {
+        // File already has content, decode it
+        const decodedContent = atob(file.content);
+        setFileContent(decodedContent);
+        addToOutput(`Viewing file: ${file.path}`);
+      } else {
+        // Fetch file content
+        const response = await octokit.rest.repos.getContent({
           owner: repo.owner,
           repo: repo.name,
-          path,
+          path: file.path,
         });
         
-        if (!Array.isArray(data)) {
-          return `Error: '${path}' is not a directory`;
-        }
-        
-        const dirs = data.filter(item => item.type === 'dir').map(item => `📁 ${item.name}/`);
-        const files = data.filter(item => item.type === 'file').map(item => `📄 ${item.name}`);
-        
-        return [
-          `Directory: /${path}`,
-          ...dirs,
-          ...files
-        ].join('\n');
-      } catch (error) {
-        throw new Error(`Failed to list directory: ${path}`);
-      }
-    }
-    
-    // Cat command (view file)
-    if (cmdLower.startsWith('cat ')) {
-      if (args.length === 0) {
-        return "Usage: cat <file_path>";
-      }
-      
-      const filePath = args.join(' ');
-      
-      try {
-        const { data } = await octokit.rest.repos.getContent({
-          owner: repo.owner,
-          repo: repo.name,
-          path: filePath,
-        });
-        
-        if (Array.isArray(data)) {
-          return `Error: '${filePath}' is a directory, not a file`;
-        }
-        
-        // Check if data has content property and is a file
-        if ('content' in data && data.type === 'file') {
-          // Decode base64 content
-          let content: string;
-          try {
-            content = atob(data.content.replace(/\n/g, ''));
-          } catch (e) {
-            throw new Error("Failed to decode file content");
-          }
-          return content;
-        } else {
-          return `Error: Could not read file content for ${filePath}`;
-        }
-      } catch (error) {
-        throw new Error(`Failed to get file: ${filePath}`);
-      }
-    }
-    
-    // Create directory
-    if (cmdLower.startsWith('mkdir ')) {
-      if (args.length === 0) {
-        return "Usage: mkdir <directory_path>";
-      }
-      
-      const dirPath = args.join(' ');
-      
-      try {
-        await octokit.rest.repos.createOrUpdateFileContents({
-          owner: repo.owner,
-          repo: repo.name,
-          path: `${dirPath}/.gitkeep`,
-          message: `[Slync] Create directory: ${dirPath}`,
-          content: btoa(' ') // Base64 encoded space
-        });
-        
-        return `Directory created: ${dirPath}`;
-      } catch (error) {
-        throw new Error(`Failed to create directory: ${dirPath}`);
-      }
-    }
-    
-    // Create or update file
-    if (cmdLower.startsWith('create ')) {
-      const parts = cmd.split(' ');
-      if (parts.length < 3) {
-        return "Usage: create <file_path> <content>";
-      }
-      
-      const filePath = parts[1];
-      const fileContent = parts.slice(2).join(' ');
-      
-      try {
-        // Check if file exists to get its SHA
-        let sha: string | undefined;
-        try {
-          const { data } = await octokit.rest.repos.getContent({
-            owner: repo.owner,
-            repo: repo.name,
-            path: filePath,
-          });
+        if ('content' in response.data && 'encoding' in response.data) {
+          const fileData = response.data;
+          const decodedContent = fileData.encoding === 'base64' 
+            ? atob(fileData.content) 
+            : fileData.content;
           
-          if (!Array.isArray(data) && 'sha' in data) {
-            sha = data.sha;
-          }
-        } catch (e) {
-          // File doesn't exist, which is fine
+          setFileContent(decodedContent);
+          addToOutput(`Viewing file: ${file.path}`);
+        } else {
+          throw new Error('Invalid file data received');
         }
-        
-        await octokit.rest.repos.createOrUpdateFileContents({
-          owner: repo.owner,
-          repo: repo.name,
-          path: filePath,
-          message: `[Slync] ${sha ? 'Update' : 'Create'} file: ${filePath}`,
-          content: btoa(fileContent), // Base64 encode content
-          sha // Include SHA if updating existing file
-        });
-        
-        return `File ${sha ? 'updated' : 'created'}: ${filePath}`;
-      } catch (error) {
-        throw new Error(`Failed to ${sha ? 'update' : 'create'} file: ${filePath}`);
       }
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      setFileContent('');
+      addToOutput(`Error: Could not view file ${file.path}`);
+      toast.error(`Failed to view file ${file.path}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const navigateToPath = (path: string) => {
+    if (path === '..') {
+      const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+      fetchDirectoryContents(parentPath);
+    } else if (path === '/') {
+      fetchDirectoryContents('/');
+    } else {
+      fetchDirectoryContents(path);
+    }
+  };
+
+  const addToOutput = (text: string) => {
+    setOutput(prev => [...prev, text]);
+  };
+  
+  const executeCommand = async () => {
+    if (!command.trim()) return;
+    
+    const cmd = command.trim();
+    addToOutput(`> ${cmd}`);
+    setCommand('');
+    
+    if (!octokit || !repo) {
+      addToOutput('Error: Not authenticated with GitHub or no repository connected');
+      return;
     }
     
-    return `Command not found: ${cmd}\nType 'help' for available commands.`;
+    if (cmd.startsWith('cd ')) {
+      const path = cmd.substring(3);
+      if (path === '..') {
+        navigateToPath('..');
+      } else if (path.startsWith('/')) {
+        fetchDirectoryContents(path);
+      } else {
+        const newPath = currentPath === '/' 
+          ? `/${path}` 
+          : `${currentPath}/${path}`;
+        fetchDirectoryContents(newPath);
+      }
+      return;
+    }
+    
+    if (cmd === 'ls' || cmd === 'dir') {
+      addToOutput(`Contents of ${currentPath}:`);
+      dirContents.forEach(item => {
+        addToOutput(`${item.type === 'dir' ? 'Directory' : 'File'}: ${item.name}`);
+      });
+      return;
+    }
+    
+    if (cmd.startsWith('cat ') || cmd.startsWith('view ')) {
+      const fileName = cmd.split(' ')[1];
+      const file = dirContents.find(f => f.name === fileName && f.type === 'file');
+      if (file) {
+        viewFile(file);
+      } else {
+        addToOutput(`File not found: ${fileName}`);
+      }
+      return;
+    }
+    
+    if (cmd === 'help') {
+      addToOutput('Available commands:');
+      addToOutput('cd <path> - Change directory');
+      addToOutput('ls or dir - List contents of current directory');
+      addToOutput('cat <file> or view <file> - View file contents');
+      addToOutput('help - Show this help message');
+      return;
+    }
+    
+    addToOutput(`Unknown command: ${cmd}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      executeCommand();
+    }
   };
   
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString();
+  const renderBreadcrumb = () => {
+    const parts = currentPath.split('/').filter(Boolean);
+    
+    return (
+      <div className="flex items-center text-sm text-matrix-primary/70 mb-4 overflow-x-auto">
+        <span 
+          className="cursor-pointer hover:text-matrix-primary"
+          onClick={() => navigateToPath('/')}
+        >
+          root
+        </span>
+        
+        {parts.map((part, index) => (
+          <React.Fragment key={index}>
+            <ChevronRight size={14} className="mx-1" />
+            <span 
+              className="cursor-pointer hover:text-matrix-primary"
+              onClick={() => {
+                const path = '/' + parts.slice(0, index + 1).join('/');
+                navigateToPath(path);
+              }}
+            >
+              {part}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
   };
   
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-matrix-background p-4">
       {theme.showCodeRain && <MatrixRain speed={theme.speed} />}
       
-      <div className="container mx-auto max-w-5xl py-8">
+      <div className="container mx-auto max-w-6xl py-8">
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -299,122 +281,171 @@ Size: ${data.size} KB
           className="flex justify-between items-center mb-8"
         >
           <div className="flex items-center">
-            <TerminalIcon size={24} className="text-matrix-primary mr-3" />
+            <Terminal size={24} className="text-matrix-primary mr-3" />
             <GlitchText text="Git Terminal" variant="title" />
           </div>
           
-          <div className="text-matrix-primary/60 text-sm">
-            {repo ? `Connected to: ${repo.owner}/${repo.name}` : 'Not connected'}
+          <div className="flex items-center space-x-3">
+            <NeonButton 
+              onClick={() => fetchDirectoryContents(currentPath)}
+              disabled={isLoading}
+            >
+              <RefreshCw size={16} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </NeonButton>
           </div>
         </motion.div>
         
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="matrix-glass rounded-md overflow-hidden"
-        >
-          <div className="flex items-center justify-between bg-black/30 px-4 py-2 border-b border-matrix-primary/30">
-            <div className="flex items-center">
-              <div className="flex space-x-2 mr-4">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              </div>
-              <span className="text-matrix-primary/70 text-sm font-mono">
-                {user?.username}@slync-terminal:~
-              </span>
-            </div>
-            <span className="text-matrix-primary/50 text-xs">git terminal</span>
-          </div>
-          
-          <div className="terminal-output bg-black/60 h-96 p-4 overflow-auto font-mono text-sm">
-            {history.map((item, index) => (
-              <div key={index} className="mb-4">
-                {item.command && (
-                  <div className="flex">
-                    <span className="text-green-400 mr-2">$</span>
-                    <span className="text-matrix-primary">{item.command}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-1 space-y-6"
+          >
+            <motion.div 
+              variants={itemVariants}
+              className="matrix-card"
+            >
+              <h3 className="text-lg text-matrix-primary font-bold mb-4">Repository Explorer</h3>
+              
+              {renderBreadcrumb()}
+              
+              <div className="max-h-96 overflow-y-auto pr-2">
+                {currentPath !== '/' && (
+                  <div 
+                    className="flex items-center p-2 hover:bg-matrix-primary/10 rounded cursor-pointer"
+                    onClick={() => navigateToPath('..')}
+                  >
+                    <Folder size={18} className="text-matrix-primary mr-2" />
+                    <span className="text-matrix-primary">..</span>
                   </div>
                 )}
-                <div className={`whitespace-pre-wrap ml-4 ${item.success ? 'text-matrix-primary/90' : 'text-red-400'}`}>
-                  {item.output}
+                
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-4">
+                    <div className="animate-spin text-matrix-primary">
+                      <RefreshCw size={24} />
+                    </div>
+                  </div>
+                ) : (
+                  dirContents.length > 0 ? (
+                    dirContents
+                      .sort((a, b) => {
+                        // Directories first
+                        if (a.type === 'dir' && b.type !== 'dir') return -1;
+                        if (a.type !== 'dir' && b.type === 'dir') return 1;
+                        // Then alphabetically
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((item, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center p-2 hover:bg-matrix-primary/10 rounded cursor-pointer"
+                          onClick={() => item.type === 'dir' 
+                            ? navigateToPath(`${currentPath === '/' ? '' : currentPath}/${item.name}`)
+                            : viewFile(item)
+                          }
+                        >
+                          {item.type === 'dir' ? (
+                            <Folder size={18} className="text-matrix-primary mr-2" />
+                          ) : (
+                            <File size={18} className="text-matrix-primary mr-2" />
+                          )}
+                          <span className="text-matrix-primary">{item.name}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="text-center py-4 text-matrix-primary/60">
+                      Directory is empty
+                    </div>
+                  )
+                )}
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              variants={itemVariants}
+              className="matrix-card"
+            >
+              <h3 className="text-lg text-matrix-primary font-bold mb-4">Terminal</h3>
+              
+              <div className="bg-black/80 rounded p-3 font-mono text-sm text-matrix-primary h-64 overflow-y-auto mb-4">
+                {output.map((line, index) => (
+                  <div key={index} className="mb-1">
+                    {line}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center">
+                <span className="text-matrix-primary mr-2">$</span>
+                <NeonInput
+                  type="text"
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter command (try 'help')"
+                  className="flex-grow"
+                />
+                <NeonButton onClick={executeCommand} className="ml-2">
+                  Execute
+                </NeonButton>
+              </div>
+            </motion.div>
+          </motion.div>
+          
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-2"
+          >
+            <motion.div 
+              variants={itemVariants}
+              className="matrix-card"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg text-matrix-primary font-bold">
+                  {selectedFile ? (
+                    <span className="flex items-center">
+                      <Code size={20} className="mr-2" />
+                      {selectedFile.name}
+                    </span>
+                  ) : (
+                    "File Viewer"
+                  )}
+                </h3>
+                
+                {repo && (
+                  <div className="flex items-center text-sm text-matrix-primary/70">
+                    <Github size={16} className="mr-2" />
+                    {repo.owner}/{repo.name}
+                  </div>
+                )}
+              </div>
+              
+              {!repo ? (
+                <div className="flex flex-col items-center justify-center h-96 text-center">
+                  <AlertTriangle size={48} className="text-matrix-primary/40 mb-4" />
+                  <p className="text-matrix-primary/70 mb-2">No repository connected</p>
+                  <p className="text-matrix-primary/50 text-sm">
+                    Connect a GitHub repository on the home page to explore and interact with files.
+                  </p>
                 </div>
-                {item.timestamp && (
-                  <div className="text-right text-matrix-primary/40 text-xs mt-1">
-                    {formatTimestamp(item.timestamp)}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          <form onSubmit={handleCommandSubmit} className="bg-black/40 p-3 border-t border-matrix-primary/30">
-            <div className="flex items-center">
-              <span className="text-green-400 mr-2">$</span>
-              <NeonInput
-                type="text"
-                value={command}
-                onChange={(e) => setCommand(e.target.value)}
-                placeholder="Type a git command..."
-                className="bg-transparent border-none focus:shadow-none flex-grow py-2"
-                onKeyDown={(e) => e.key === 'Enter' && handleCommandSubmit(e)}
-              />
-              <NeonButton
-                type="submit"
-                disabled={isExecuting || !command.trim()}
-                className="ml-2"
-              >
-                <Send size={18} />
-              </NeonButton>
-            </div>
-          </form>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { delay: 0.3 }}}
-          className="mt-6 matrix-glass p-4 rounded-md"
-        >
-          <h3 className="text-matrix-primary font-bold mb-2">Quick Commands</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <button 
-              className="matrix-glass p-2 rounded text-sm text-matrix-primary/80 hover:text-matrix-primary hover:bg-matrix-primary/10"
-              onClick={() => {
-                setCommand('ls');
-                setTimeout(() => handleCommandSubmit({ preventDefault: () => {} } as React.FormEvent), 100);
-              }}
-            >
-              ls
-            </button>
-            <button 
-              className="matrix-glass p-2 rounded text-sm text-matrix-primary/80 hover:text-matrix-primary hover:bg-matrix-primary/10"
-              onClick={() => {
-                setCommand('info');
-                setTimeout(() => handleCommandSubmit({ preventDefault: () => {} } as React.FormEvent), 100);
-              }}
-            >
-              info
-            </button>
-            <button 
-              className="matrix-glass p-2 rounded text-sm text-matrix-primary/80 hover:text-matrix-primary hover:bg-matrix-primary/10"
-              onClick={() => {
-                setCommand('help');
-                setTimeout(() => handleCommandSubmit({ preventDefault: () => {} } as React.FormEvent), 100);
-              }}
-            >
-              help
-            </button>
-            <button 
-              className="matrix-glass p-2 rounded text-sm text-matrix-primary/80 hover:text-matrix-primary hover:bg-matrix-primary/10"
-              onClick={() => {
-                setCommand('clear');
-                setTimeout(() => handleCommandSubmit({ preventDefault: () => {} } as React.FormEvent), 100);
-              }}
-            >
-              clear
-            </button>
-          </div>
-        </motion.div>
+              ) : selectedFile ? (
+                <div className="bg-black/80 rounded p-4 font-mono text-sm text-matrix-primary overflow-x-auto h-96">
+                  <pre>{fileContent}</pre>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-96 text-center">
+                  <File size={48} className="text-matrix-primary/40 mb-4" />
+                  <p className="text-matrix-primary/70">Select a file to view its contents</p>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

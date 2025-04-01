@@ -2,7 +2,21 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Github, Book, CheckSquare, Terminal, Code, Download, Upload, Key } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  FileText, 
+  Github, 
+  Book, 
+  CheckSquare, 
+  Terminal, 
+  Code, 
+  Download, 
+  Upload, 
+  Key, 
+  Lock,
+  RefreshCw,
+  Settings
+} from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
 import GlitchText from '@/components/GlitchText';
@@ -71,6 +85,7 @@ const HowToUse: React.FC = () => {
                       <li>You can then either:
                         <ul className="list-disc list-inside ml-6 mt-1">
                           <li>Connect to an existing repository by providing the URL</li>
+                          <li>Select from your existing repositories</li>
                           <li>Create a new repository to store your data</li>
                         </ul>
                       </li>
@@ -84,6 +99,8 @@ const HowToUse: React.FC = () => {
                       <li>If you see "Not authenticated with GitHub", make sure your token has the correct <code className="bg-black/40 px-1 rounded">repo</code> scope</li>
                       <li>For existing repos, ensure you have write access to that repository</li>
                       <li>Try authenticating with your token first, then connecting to a repository</li>
+                      <li>Check that your token hasn't expired (GitHub tokens can have expiration dates)</li>
+                      <li>Make sure there are no typos in your repository URL</li>
                     </ul>
                   </div>
                 </div>
@@ -171,6 +188,41 @@ const HowToUse: React.FC = () => {
                 Open Git Terminal
               </NeonButton>
             </div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
+            className="matrix-card"
+          >
+            <div className="flex items-center mb-4">
+              <Settings size={24} className="text-matrix-primary mr-3" />
+              <h3 className="text-xl text-matrix-primary font-bold">App Settings & Themes</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="matrix-glass p-3 rounded-md">
+                <h4 className="font-bold text-matrix-primary mb-2 flex items-center">
+                  <RefreshCw size={16} className="mr-2" /> Sync Settings
+                </h4>
+                <p className="text-sm text-matrix-primary/70">
+                  Customize how often Slync syncs data with your GitHub repository
+                </p>
+              </div>
+              
+              <div className="matrix-glass p-3 rounded-md">
+                <h4 className="font-bold text-matrix-primary mb-2 flex items-center">
+                  <Lock size={16} className="mr-2" /> Security
+                </h4>
+                <p className="text-sm text-matrix-primary/70">
+                  Manage token storage and connection settings
+                </p>
+              </div>
+            </div>
+            
+            <NeonButton className="w-full" onClick={() => navigate('/themes')}>
+              Customize Theme
+            </NeonButton>
           </motion.div>
           
           <motion.div

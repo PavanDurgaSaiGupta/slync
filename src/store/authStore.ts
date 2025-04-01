@@ -38,27 +38,24 @@ interface AuthState {
 
 // Helper function to safely encode content to base64
 const safelyEncodeToBase64 = (str: string): string => {
-  // For browser environments where Buffer is not available
-  if (typeof window !== 'undefined') {
-    return btoa(unescape(encodeURIComponent(str)));
+  try {
+    // For browser environments
+    return btoa(encodeURIComponent(str));
+  } catch (e) {
+    console.error('Error encoding to base64:', e);
+    throw new Error('Failed to encode content to base64');
   }
-  // For Node.js environments
-  return Buffer.from(str).toString('base64');
 };
 
 // Helper function to decode base64 content safely
 const safelyDecodeBase64 = (base64: string): string => {
-  // For browser environments
-  if (typeof window !== 'undefined') {
-    try {
-      return decodeURIComponent(escape(atob(base64)));
-    } catch (e) {
-      console.error('Error decoding base64:', e);
-      return '';
-    }
+  try {
+    // For browser environments
+    return decodeURIComponent(atob(base64));
+  } catch (e) {
+    console.error('Error decoding base64:', e);
+    return '';
   }
-  // For Node.js environments
-  return Buffer.from(base64, 'base64').toString('utf-8');
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -217,7 +214,7 @@ export const useAuthStore = create<AuthState>()(
               path,
             });
             
-            // If data is an array, it means we got a directory instead of a file
+            // Check if data is a single file or an array (directory)
             if (!Array.isArray(data) && 'sha' in data) {
               sha = data.sha;
             }
@@ -270,7 +267,7 @@ export const useAuthStore = create<AuthState>()(
               throw new Error(`Path '${path}' is a directory, not a file`);
             }
             
-            // Type guard to check if data has content property before accessing it
+            // Type guard to check if data has content property
             if (!Array.isArray(data) && 'content' in data && data.type === 'file') {
               // Decode base64 content
               const content = safelyDecodeBase64(data.content);
@@ -308,7 +305,7 @@ export const useAuthStore = create<AuthState>()(
             const { data } = await octokit.rest.repos.getContent({
               owner: repo.owner,
               repo: repo.name,
-              path,
+              path: path === '/' ? '' : path,
             });
             
             set({ isLoading: false });

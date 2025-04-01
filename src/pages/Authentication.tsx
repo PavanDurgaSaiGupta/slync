@@ -5,7 +5,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Octokit } from 'octokit';
 import { toast } from 'sonner';
-import { Github, Lock, User, ArrowRight, Code } from 'lucide-react';
+import { 
+  Github, 
+  Lock, 
+  User, 
+  ArrowRight, 
+  Code, 
+  Plus,
+  Search
+} from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
 import NeonInput from '@/components/NeonInput';
@@ -18,6 +26,11 @@ const Authentication = () => {
   const [repoUrl, setRepoUrl] = useState('');
   const [authMethod, setAuthMethod] = useState<'token' | 'repo'>('token');
   const [isLoading, setIsLoading] = useState(false);
+  const [createNewRepo, setCreateNewRepo] = useState(false);
+  const [newRepoName, setNewRepoName] = useState('');
+  const [userRepos, setUserRepos] = useState<{name: string, full_name: string}[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const { setToken: setAuthToken, setUser, user, connectRepo } = useAuthStore();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -52,8 +65,19 @@ const Authentication = () => {
         });
         setAuthToken(token);
         
+        // Fetch user repositories
+        const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
+          sort: 'updated',
+          per_page: 100
+        });
+        
+        setUserRepos(repos.map(repo => ({
+          name: repo.name,
+          full_name: repo.full_name
+        })));
+        
         toast.success('GitHub authentication successful!');
-        navigate('/');
+        setAuthMethod('repo');
       }
     } catch (error) {
       console.error('Authentication error:', error);
@@ -64,6 +88,17 @@ const Authentication = () => {
   };
   
   const handleAuthWithRepo = async () => {
+    if (createNewRepo) {
+      if (!newRepoName.trim()) {
+        toast.error('Please enter a repository name');
+        return;
+      }
+      
+      // Create new repository logic would go here
+      toast.error('Repository creation is not implemented yet');
+      return;
+    }
+    
     if (!repoUrl.trim()) {
       toast.error('Please enter a GitHub repository URL');
       return;
@@ -96,6 +131,15 @@ const Authentication = () => {
       }
     }
   };
+  
+  const handleSelectRepo = (repoFullName: string) => {
+    setRepoUrl(`https://github.com/${repoFullName}`);
+  };
+  
+  const filteredRepos = userRepos.filter(repo => 
+    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-matrix-background">
@@ -136,6 +180,7 @@ const Authentication = () => {
               <button 
                 className={`flex-1 py-2 px-4 ${authMethod === 'repo' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
                 onClick={() => setAuthMethod('repo')}
+                disabled={!user}
               >
                 <span className="flex items-center justify-center">
                   <Github size={16} className="mr-2" />
@@ -195,30 +240,99 @@ const Authentication = () => {
                   Connect Repository
                 </h2>
                 
-                <div>
-                  <label htmlFor="repo-url" className="block text-matrix-primary/80 mb-2 flex items-center">
-                    <Github size={16} className="mr-2" />
-                    GitHub Repository URL
-                  </label>
-                  <NeonInput
-                    id="repo-url"
-                    type="text"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="https://github.com/username/repo"
-                  />
-                  <p className="text-matrix-primary/60 text-sm mt-2">
-                    Enter an existing repo URL or create a new one
-                  </p>
+                <div className="flex mb-4">
+                  <button 
+                    className={`flex-1 py-2 px-4 ${!createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+                    onClick={() => setCreateNewRepo(false)}
+                  >
+                    <span className="flex items-center justify-center text-sm">
+                      <Github size={14} className="mr-1" />
+                      Connect Existing
+                    </span>
+                  </button>
+                  <button 
+                    className={`flex-1 py-2 px-4 ${createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+                    onClick={() => setCreateNewRepo(true)}
+                  >
+                    <span className="flex items-center justify-center text-sm">
+                      <Plus size={14} className="mr-1" />
+                      Create New
+                    </span>
+                  </button>
                 </div>
+                
+                {createNewRepo ? (
+                  <div>
+                    <label htmlFor="new-repo-name" className="block text-matrix-primary/80 mb-2 flex items-center">
+                      <Plus size={16} className="mr-2" />
+                      New Repository Name
+                    </label>
+                    <NeonInput
+                      id="new-repo-name"
+                      type="text"
+                      value={newRepoName}
+                      onChange={(e) => setNewRepoName(e.target.value)}
+                      placeholder="my-slync-repo"
+                    />
+                    <p className="text-matrix-primary/60 text-sm mt-2">
+                      A new public repository will be created
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label htmlFor="repo-url" className="block text-matrix-primary/80 mb-2 flex items-center">
+                      <Github size={16} className="mr-2" />
+                      GitHub Repository URL
+                    </label>
+                    <NeonInput
+                      id="repo-url"
+                      type="text"
+                      value={repoUrl}
+                      onChange={(e) => setRepoUrl(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="https://github.com/username/repo"
+                    />
+                    
+                    {userRepos.length > 0 && (
+                      <div className="mt-4">
+                        <div className="relative mb-2">
+                          <NeonInput
+                            type="text"
+                            placeholder="Search your repositories"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            icon={<Search size={18} />}
+                          />
+                        </div>
+                        <div className="max-h-40 overflow-y-auto matrix-glass p-2 rounded">
+                          {filteredRepos.length > 0 ? (
+                            filteredRepos.map((repo, index) => (
+                              <div 
+                                key={index} 
+                                className="p-2 hover:bg-matrix-primary/10 rounded cursor-pointer flex items-center"
+                                onClick={() => handleSelectRepo(repo.full_name)}
+                              >
+                                <Github size={14} className="mr-2 text-matrix-primary/70" />
+                                <span className="text-matrix-primary text-sm">{repo.full_name}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center p-2 text-matrix-primary/50 text-sm">
+                              No repositories found
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <NeonButton 
                   onClick={handleAuthWithRepo} 
                   className="w-full"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Connecting...' : 'Connect Repository'}
+                  {isLoading ? 'Connecting...' : createNewRepo ? 'Create Repository' : 'Connect Repository'}
                   {!isLoading && <ArrowRight size={16} className="ml-2" />}
                 </NeonButton>
               </div>
