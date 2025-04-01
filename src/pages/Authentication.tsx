@@ -54,9 +54,39 @@ const Authentication = () => {
     }
   }, [user, navigate]);
 
-  const handleAuthWithToken = async () => {
-    if (!token.trim()) {
+  const handleGitHubAuth = async () => {
+    setIsLoading(true);
+    
+    try {
+      // In a real implementation, this would redirect to GitHub OAuth
+      toast.info('Redirecting to GitHub for authentication...');
+      
+      // Simulate GitHub OAuth flow
+      // In a real implementation, this would be handled by GitHub OAuth
+      setTimeout(() => {
+        // This is where we'd handle the OAuth callback
+        // For now, just show a prompt for token
+        const simulatedToken = prompt("Enter your GitHub token (simulation of OAuth):");
+        if (simulatedToken) {
+          handleAuthWithToken(simulatedToken);
+        } else {
+          setIsLoading(false);
+          toast.error('Authentication cancelled');
+        }
+      }, 1500);
+    } catch (error) {
+      console.error('GitHub auth error:', error);
+      toast.error('Failed to authenticate with GitHub');
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthWithToken = async (providedToken?: string) => {
+    const tokenToUse = providedToken || token;
+    
+    if (!tokenToUse.trim()) {
       toast.error('Please enter a GitHub token');
+      setIsLoading(false);
       return;
     }
 
@@ -64,7 +94,7 @@ const Authentication = () => {
     
     try {
       // Create Octokit instance with the token
-      const octokit = new Octokit({ auth: token });
+      const octokit = new Octokit({ auth: tokenToUse });
       
       // Get user data to verify the token
       const { data } = await octokit.rest.users.getAuthenticated();
@@ -76,7 +106,7 @@ const Authentication = () => {
           email: data.email || '',
           avatarUrl: data.avatar_url
         });
-        setAuthToken(token);
+        setAuthToken(tokenToUse);
         
         // Fetch user repositories
         const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
@@ -363,6 +393,21 @@ const Authentication = () => {
             <div className="flex-grow border-t border-matrix-primary/30"></div>
           </div>
           
+          <NeonButton 
+            onClick={handleGitHubAuth} 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
+            {!isLoading && <Github size={16} className="ml-2" />}
+          </NeonButton>
+          
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-matrix-primary/30"></div>
+            <span className="flex-shrink mx-4 text-matrix-primary/60">OR</span>
+            <div className="flex-grow border-t border-matrix-primary/30"></div>
+          </div>
+          
           <div>
             <label htmlFor="github-token" className="block text-matrix-primary/80 mb-2 flex items-center">
               <Lock size={16} className="mr-2" />
@@ -382,11 +427,11 @@ const Authentication = () => {
           </div>
           
           <NeonButton 
-            onClick={handleAuthWithToken} 
+            onClick={() => handleAuthWithToken()} 
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
+            {isLoading ? 'Authenticating...' : 'Continue with Token'}
             {!isLoading && <ArrowRight size={16} className="ml-2" />}
           </NeonButton>
         </div>
