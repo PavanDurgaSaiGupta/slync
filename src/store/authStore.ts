@@ -36,6 +36,31 @@ interface AuthState {
   getDirectoryContents: (path: string) => Promise<any[]>;
 }
 
+// Helper function to safely encode content to base64
+const safelyEncodeToBase64 = (str: string): string => {
+  // For browser environments where Buffer is not available
+  if (typeof window !== 'undefined') {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+  // For Node.js environments
+  return Buffer.from(str).toString('base64');
+};
+
+// Helper function to decode base64 content safely
+const safelyDecodeBase64 = (base64: string): string => {
+  // For browser environments
+  if (typeof window !== 'undefined') {
+    try {
+      return decodeURIComponent(escape(atob(base64)));
+    } catch (e) {
+      console.error('Error decoding base64:', e);
+      return '';
+    }
+  }
+  // For Node.js environments
+  return Buffer.from(base64, 'base64').toString('utf-8');
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -151,7 +176,7 @@ export const useAuthStore = create<AuthState>()(
                   repo: repo.name,
                   path: `${folderPath}/.gitkeep`,
                   message: `[Slync] Initialize ${folderPath} folder`,
-                  content: Buffer.from(' ').toString('base64'),
+                  content: safelyEncodeToBase64(' '),
                 });
                 console.log(`Created folder '${folderPath}'`);
                 toast.success(`Created folder '${folderPath}'`);
@@ -206,7 +231,7 @@ export const useAuthStore = create<AuthState>()(
             repo: repo.name,
             path,
             message,
-            content: Buffer.from(content).toString('base64'),
+            content: safelyEncodeToBase64(content),
             sha, // Include SHA if updating an existing file
           });
           
@@ -246,9 +271,9 @@ export const useAuthStore = create<AuthState>()(
             }
             
             // Type guard to check if data has content property before accessing it
-            if (!Array.isArray(data) && 'content' in data) {
+            if (!Array.isArray(data) && 'content' in data && data.type === 'file') {
               // Decode base64 content
-              const content = Buffer.from(data.content, 'base64').toString('utf-8');
+              const content = safelyDecodeBase64(data.content);
               return { content, sha: data.sha };
             } else {
               throw new Error(`File at '${path}' does not contain readable content`);
@@ -288,6 +313,7 @@ export const useAuthStore = create<AuthState>()(
             
             set({ isLoading: false });
             
+            // If data is not an array, it means we got a file instead of a directory
             if (!Array.isArray(data)) {
               throw new Error(`Path '${path}' is a file, not a directory`);
             }
@@ -295,7 +321,9 @@ export const useAuthStore = create<AuthState>()(
             return data;
           } catch (e) {
             if (e instanceof Error && e.message.includes('Not Found')) {
-              return []; // Directory doesn't exist or is empty
+              // Directory doesn't exist, create it and return empty array
+              await get().createFolder(path);
+              return []; 
             }
             throw e;
           }

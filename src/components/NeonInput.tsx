@@ -12,8 +12,8 @@ interface NeonInputProps {
   className?: string;
   required?: boolean;
   icon?: React.ReactNode;
-  id?: string; // Added id prop
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; // Added onKeyDown prop
+  id?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 const NeonInput: React.FC<NeonInputProps> = ({
