@@ -9,10 +9,13 @@ import {
   Github, 
   Lock, 
   User, 
+  Mail,
+  KeyRound,
   ArrowRight, 
   Code, 
   Plus,
-  Search
+  Search,
+  Info
 } from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
@@ -22,9 +25,19 @@ import MatrixRain from '@/components/MatrixRain';
 import { useTheme } from '@/hooks/useTheme';
 
 const Authentication = () => {
+  // GitHub token authentication
   const [token, setToken] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
+  
+  // Regular authentication
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // UI state
   const [authMethod, setAuthMethod] = useState<'token' | 'repo'>('token');
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [createNewRepo, setCreateNewRepo] = useState(false);
   const [newRepoName, setNewRepoName] = useState('');
@@ -94,8 +107,32 @@ const Authentication = () => {
         return;
       }
       
-      // Create new repository logic would go here
-      toast.error('Repository creation is not implemented yet');
+      setIsLoading(true);
+      
+      try {
+        // Create Octokit instance with the token
+        const octokit = new Octokit({ auth: token });
+        
+        // Create the new repository
+        const { data } = await octokit.rest.repos.createForAuthenticatedUser({
+          name: newRepoName,
+          description: 'Repository for Slync app data',
+          auto_init: true
+        });
+        
+        if (data) {
+          // Connect to the new repository
+          await connectRepo(data.html_url);
+          navigate('/');
+          toast.success('Repository created and connected successfully!');
+        }
+      } catch (error) {
+        console.error('Repository creation error:', error);
+        toast.error('Failed to create repository. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+      
       return;
     }
     
@@ -121,6 +158,47 @@ const Authentication = () => {
       setIsLoading(false);
     }
   };
+  
+  const handleLoginWithPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Email and password are required');
+      return;
+    }
+    
+    // Simulate login - in a real app, we would connect to a backend
+    setUser({
+      username: email.split('@')[0],
+      email,
+      avatarUrl: `https://avatars.dicebear.com/api/identicon/${email}.svg`
+    });
+    
+    navigate('/');
+  };
+  
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!username || !email || !password) {
+      toast.error('Username, email, and password are required');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    // Simulate registration - in a real app, we would connect to a backend
+    setUser({
+      username,
+      email,
+      avatarUrl: `https://avatars.dicebear.com/api/identicon/${username}.svg`
+    });
+    
+    navigate('/');
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -140,6 +218,301 @@ const Authentication = () => {
     repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  const renderAuthForm = () => {
+    if (authMethod === 'token') {
+      if (user && token) {
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
+                <User size={32} className="text-matrix-primary" />
+              </div>
+            </div>
+            
+            <div className="matrix-glass p-4 rounded-md">
+              <p className="text-matrix-primary/70 mb-2">Authenticated as:</p>
+              <p className="neon-text font-mono">{user.username}</p>
+              <p className="text-matrix-primary/70 text-sm">{user.email}</p>
+            </div>
+            
+            <div className="flex justify-between">
+              <NeonButton 
+                onClick={() => setAuthMethod('repo')}
+                className="flex-1"
+              >
+                Connect Repository
+              </NeonButton>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-center mb-6">
+            <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
+              <Github size={32} className="text-matrix-primary" />
+            </div>
+          </div>
+          
+          <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
+            GitHub Authentication
+          </h2>
+          
+          <div className="flex mb-4">
+            <button 
+              className={`flex-1 py-2 px-4 ${authTab === 'login' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+              onClick={() => setAuthTab('login')}
+            >
+              <span className="flex items-center justify-center text-sm">
+                <KeyRound size={14} className="mr-1" />
+                Sign In
+              </span>
+            </button>
+            <button 
+              className={`flex-1 py-2 px-4 ${authTab === 'register' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+              onClick={() => setAuthTab('register')}
+            >
+              <span className="flex items-center justify-center text-sm">
+                <Plus size={14} className="mr-1" />
+                Register
+              </span>
+            </button>
+          </div>
+          
+          {authTab === 'login' ? (
+            <form onSubmit={handleLoginWithPassword} className="space-y-4">
+              <div>
+                <NeonInput
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  icon={<Mail size={18} />}
+                />
+              </div>
+              
+              <div>
+                <NeonInput
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={<KeyRound size={18} />}
+                />
+              </div>
+              
+              <NeonButton type="submit" className="w-full">
+                Sign In
+                <ArrowRight size={16} className="ml-2" />
+              </NeonButton>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <NeonInput
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  icon={<User size={18} />}
+                />
+              </div>
+              
+              <div>
+                <NeonInput
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  icon={<Mail size={18} />}
+                />
+              </div>
+              
+              <div>
+                <NeonInput
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={<KeyRound size={18} />}
+                />
+              </div>
+              
+              <div>
+                <NeonInput
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  icon={<KeyRound size={18} />}
+                />
+              </div>
+              
+              <NeonButton type="submit" className="w-full">
+                Register
+                <ArrowRight size={16} className="ml-2" />
+              </NeonButton>
+            </form>
+          )}
+          
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-matrix-primary/30"></div>
+            <span className="flex-shrink mx-4 text-matrix-primary/60">OR</span>
+            <div className="flex-grow border-t border-matrix-primary/30"></div>
+          </div>
+          
+          <div>
+            <label htmlFor="github-token" className="block text-matrix-primary/80 mb-2 flex items-center">
+              <Lock size={16} className="mr-2" />
+              GitHub Personal Access Token
+            </label>
+            <NeonInput
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter your GitHub token"
+              icon={<Github size={18} />}
+            />
+            <p className="text-matrix-primary/60 text-sm mt-2">
+              Token requires <code className="bg-black/40 px-1 rounded">repo</code> scope
+            </p>
+          </div>
+          
+          <NeonButton 
+            onClick={handleAuthWithToken} 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
+            {!isLoading && <ArrowRight size={16} className="ml-2" />}
+          </NeonButton>
+        </div>
+      );
+    } else {
+      // Repo connection UI
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-center mb-6">
+            <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
+              <Github size={32} className="text-matrix-primary" />
+            </div>
+          </div>
+          
+          <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
+            Connect Repository
+          </h2>
+          
+          <div className="flex mb-4">
+            <button 
+              className={`flex-1 py-2 px-4 ${!createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+              onClick={() => setCreateNewRepo(false)}
+            >
+              <span className="flex items-center justify-center text-sm">
+                <Github size={14} className="mr-1" />
+                Connect Existing
+              </span>
+            </button>
+            <button 
+              className={`flex-1 py-2 px-4 ${createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+              onClick={() => setCreateNewRepo(true)}
+            >
+              <span className="flex items-center justify-center text-sm">
+                <Plus size={14} className="mr-1" />
+                Create New
+              </span>
+            </button>
+          </div>
+          
+          {createNewRepo ? (
+            <div>
+              <label className="block text-matrix-primary/80 mb-2 flex items-center">
+                <Plus size={16} className="mr-2" />
+                New Repository Name
+              </label>
+              <NeonInput
+                type="text"
+                value={newRepoName}
+                onChange={(e) => setNewRepoName(e.target.value)}
+                placeholder="my-slync-repo"
+              />
+              <p className="text-matrix-primary/60 text-sm mt-2">
+                A new public repository will be created
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-matrix-primary/80 mb-2 flex items-center">
+                <Github size={16} className="mr-2" />
+                GitHub Repository URL
+              </label>
+              <NeonInput
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="https://github.com/username/repo"
+                icon={<Github size={18} />}
+              />
+              
+              {userRepos.length > 0 && (
+                <div className="mt-4">
+                  <div className="relative mb-2">
+                    <NeonInput
+                      type="text"
+                      placeholder="Search your repositories"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      icon={<Search size={18} />}
+                    />
+                  </div>
+                  <div className="max-h-40 overflow-y-auto matrix-glass p-2 rounded">
+                    {filteredRepos.length > 0 ? (
+                      filteredRepos.map((repo, index) => (
+                        <div 
+                          key={index} 
+                          className="p-2 hover:bg-matrix-primary/10 rounded cursor-pointer flex items-center"
+                          onClick={() => handleSelectRepo(repo.full_name)}
+                        >
+                          <Github size={14} className="mr-2 text-matrix-primary/70" />
+                          <span className="text-matrix-primary text-sm">{repo.full_name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center p-2 text-matrix-primary/50 text-sm">
+                        No repositories found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <NeonButton 
+            onClick={handleAuthWithRepo} 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Connecting...' : createNewRepo ? 'Create Repository' : 'Connect Repository'}
+            {!isLoading && <ArrowRight size={16} className="ml-2" />}
+          </NeonButton>
+          
+          <div className="flex justify-between">
+            <NeonButton 
+              onClick={() => setAuthMethod('token')}
+              className="flex-1"
+              secondary
+            >
+              Back to Auth Options
+            </NeonButton>
+          </div>
+        </div>
+      );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-matrix-background">
@@ -166,177 +539,7 @@ const Authentication = () => {
           </div>
           
           <div className="matrix-card">
-            {/* Auth Type Toggle */}
-            <div className="flex mb-6 border-b border-matrix-primary/20">
-              <button 
-                className={`flex-1 py-2 px-4 ${authMethod === 'token' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-                onClick={() => setAuthMethod('token')}
-              >
-                <span className="flex items-center justify-center">
-                  <Lock size={16} className="mr-2" />
-                  Token Auth
-                </span>
-              </button>
-              <button 
-                className={`flex-1 py-2 px-4 ${authMethod === 'repo' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-                onClick={() => setAuthMethod('repo')}
-                disabled={!user}
-              >
-                <span className="flex items-center justify-center">
-                  <Github size={16} className="mr-2" />
-                  Repo Connect
-                </span>
-              </button>
-            </div>
-            
-            {authMethod === 'token' ? (
-              <div className="space-y-6">
-                <div className="flex justify-center mb-6">
-                  <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
-                    <Github size={32} className="text-matrix-primary" />
-                  </div>
-                </div>
-                
-                <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
-                  GitHub Authentication
-                </h2>
-                
-                <div>
-                  <label htmlFor="github-token" className="block text-matrix-primary/80 mb-2 flex items-center">
-                    <Lock size={16} className="mr-2" />
-                    GitHub Personal Access Token
-                  </label>
-                  <NeonInput
-                    id="github-token"
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Enter your GitHub token"
-                  />
-                  <p className="text-matrix-primary/60 text-sm mt-2">
-                    Token requires <code className="bg-black/40 px-1 rounded">repo</code> scope
-                  </p>
-                </div>
-                
-                <NeonButton 
-                  onClick={handleAuthWithToken} 
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Authenticating...' : 'Connect to GitHub'}
-                  {!isLoading && <ArrowRight size={16} className="ml-2" />}
-                </NeonButton>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex justify-center mb-6">
-                  <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
-                    <Github size={32} className="text-matrix-primary" />
-                  </div>
-                </div>
-                
-                <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
-                  Connect Repository
-                </h2>
-                
-                <div className="flex mb-4">
-                  <button 
-                    className={`flex-1 py-2 px-4 ${!createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-                    onClick={() => setCreateNewRepo(false)}
-                  >
-                    <span className="flex items-center justify-center text-sm">
-                      <Github size={14} className="mr-1" />
-                      Connect Existing
-                    </span>
-                  </button>
-                  <button 
-                    className={`flex-1 py-2 px-4 ${createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-                    onClick={() => setCreateNewRepo(true)}
-                  >
-                    <span className="flex items-center justify-center text-sm">
-                      <Plus size={14} className="mr-1" />
-                      Create New
-                    </span>
-                  </button>
-                </div>
-                
-                {createNewRepo ? (
-                  <div>
-                    <label htmlFor="new-repo-name" className="block text-matrix-primary/80 mb-2 flex items-center">
-                      <Plus size={16} className="mr-2" />
-                      New Repository Name
-                    </label>
-                    <NeonInput
-                      id="new-repo-name"
-                      type="text"
-                      value={newRepoName}
-                      onChange={(e) => setNewRepoName(e.target.value)}
-                      placeholder="my-slync-repo"
-                    />
-                    <p className="text-matrix-primary/60 text-sm mt-2">
-                      A new public repository will be created
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="repo-url" className="block text-matrix-primary/80 mb-2 flex items-center">
-                      <Github size={16} className="mr-2" />
-                      GitHub Repository URL
-                    </label>
-                    <NeonInput
-                      id="repo-url"
-                      type="text"
-                      value={repoUrl}
-                      onChange={(e) => setRepoUrl(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="https://github.com/username/repo"
-                    />
-                    
-                    {userRepos.length > 0 && (
-                      <div className="mt-4">
-                        <div className="relative mb-2">
-                          <NeonInput
-                            type="text"
-                            placeholder="Search your repositories"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            icon={<Search size={18} />}
-                          />
-                        </div>
-                        <div className="max-h-40 overflow-y-auto matrix-glass p-2 rounded">
-                          {filteredRepos.length > 0 ? (
-                            filteredRepos.map((repo, index) => (
-                              <div 
-                                key={index} 
-                                className="p-2 hover:bg-matrix-primary/10 rounded cursor-pointer flex items-center"
-                                onClick={() => handleSelectRepo(repo.full_name)}
-                              >
-                                <Github size={14} className="mr-2 text-matrix-primary/70" />
-                                <span className="text-matrix-primary text-sm">{repo.full_name}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-center p-2 text-matrix-primary/50 text-sm">
-                              No repositories found
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                <NeonButton 
-                  onClick={handleAuthWithRepo} 
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Connecting...' : createNewRepo ? 'Create Repository' : 'Connect Repository'}
-                  {!isLoading && <ArrowRight size={16} className="ml-2" />}
-                </NeonButton>
-              </div>
-            )}
+            {renderAuthForm()}
             
             <div className="mt-6 pt-4 border-t border-matrix-primary/20">
               <h3 className="text-matrix-primary/90 font-bold mb-2">How to get a token:</h3>
@@ -373,7 +576,5 @@ const Authentication = () => {
     </div>
   );
 };
-
-const Info = (props: any) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
 
 export default Authentication;

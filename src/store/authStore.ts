@@ -40,7 +40,7 @@ interface AuthState {
 const safelyEncodeToBase64 = (str: string): string => {
   try {
     // For browser environments
-    return btoa(encodeURIComponent(str));
+    return btoa(unescape(encodeURIComponent(str)));
   } catch (e) {
     console.error('Error encoding to base64:', e);
     throw new Error('Failed to encode content to base64');
@@ -51,7 +51,7 @@ const safelyEncodeToBase64 = (str: string): string => {
 const safelyDecodeBase64 = (base64: string): string => {
   try {
     // For browser environments
-    return decodeURIComponent(atob(base64));
+    return decodeURIComponent(escape(atob(base64)));
   } catch (e) {
     console.error('Error decoding base64:', e);
     return '';
@@ -125,6 +125,7 @@ export const useAuthStore = create<AuthState>()(
             await get().createFolder('todos');
             await get().createFolder('notes');
             await get().createFolder('config');
+            await get().createFolder('collections');
             
             toast.success('Repository connected successfully!');
             
