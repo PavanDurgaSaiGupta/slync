@@ -12,6 +12,8 @@ interface NeonInputProps {
   className?: string;
   required?: boolean;
   icon?: React.ReactNode;
+  id?: string; // Added id prop
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; // Added onKeyDown prop
 }
 
 const NeonInput: React.FC<NeonInputProps> = ({
@@ -22,7 +24,9 @@ const NeonInput: React.FC<NeonInputProps> = ({
   name,
   className,
   required = false,
-  icon
+  icon,
+  id,
+  onKeyDown
 }) => {
   return (
     <motion.div 
@@ -40,6 +44,8 @@ const NeonInput: React.FC<NeonInputProps> = ({
         value={value}
         onChange={onChange}
         name={name}
+        id={id}
+        onKeyDown={onKeyDown}
         required={required}
         className={cn(
           "neon-border bg-matrix-background/60 text-matrix-primary px-4 py-3 rounded-md outline-none focus:shadow-glow w-full",

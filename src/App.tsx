@@ -9,6 +9,8 @@ import { ThemeProvider } from "@/hooks/useTheme";
 // Pages
 import Index from "./pages/Index";
 import Authentication from "./pages/Authentication";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
 import HowToUse from "./pages/HowToUse";
 import Bookmarks from "./pages/Bookmarks";
 import Todos from "./pages/Todos";
@@ -32,6 +34,8 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/authentication" element={<Authentication />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/how-to-use" element={<HowToUse />} />
               <Route path="/bookmarks" element={<Bookmarks />} />
               <Route path="/todos" element={<Todos />} />

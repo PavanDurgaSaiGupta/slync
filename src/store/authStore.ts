@@ -150,7 +150,7 @@ export const useAuthStore = create<AuthState>()(
                   owner: repo.owner,
                   repo: repo.name,
                   path: `${folderPath}/.gitkeep`,
-                  message: `[Matrix-App] Initialize ${folderPath} folder`,
+                  message: `[Slync] Initialize ${folderPath} folder`,
                   content: Buffer.from(' ').toString('base64'),
                 });
                 console.log(`Created folder '${folderPath}'`);
@@ -193,7 +193,7 @@ export const useAuthStore = create<AuthState>()(
             });
             
             // If data is an array, it means we got a directory instead of a file
-            if (!Array.isArray(data)) {
+            if (!Array.isArray(data) && 'sha' in data) {
               sha = data.sha;
             }
           } catch (e) {
@@ -246,7 +246,7 @@ export const useAuthStore = create<AuthState>()(
             }
             
             // Type guard to check if data has content property before accessing it
-            if ('content' in data) {
+            if (!Array.isArray(data) && 'content' in data) {
               // Decode base64 content
               const content = Buffer.from(data.content, 'base64').toString('utf-8');
               return { content, sha: data.sha };
@@ -311,7 +311,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'matrix-auth-storage',
+      name: 'slync-auth-storage',
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token,
