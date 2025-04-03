@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'sonner';
 
 import { useAuthStore } from './store/authStore';
+import ThemeSwitcher from './components/ThemeSwitcher';
 
 // Pages
 import Index from './pages/Index';
@@ -30,12 +31,12 @@ function App() {
 
   return (
     <Router>
+      <ThemeSwitcher currentTheme={1} onChange={(themeNumber) => {
+        // This component will be managed by ThemeProvider
+      }} />
+      
       <Routes>
-        <Route path="/" element={
-          <Protected>
-            <Index />
-          </Protected>
-        } />
+        <Route path="/" element={<Index />} />
         <Route path="/authentication" element={<Authentication />} />
         <Route path="/how-to-use" element={<HowToUse />} />
         <Route path="/bookmarks" element={
@@ -70,6 +71,7 @@ function App() {
         } />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
       <Toaster 
         theme="dark"
         position="top-center"
