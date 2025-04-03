@@ -7,13 +7,9 @@ import { Octokit } from 'octokit';
 import { toast } from 'sonner';
 import { 
   Github, 
-  Lock, 
-  User, 
-  ArrowRight, 
-  Code, 
-  Plus,
-  Search,
-  Info
+  Info,
+  Code,
+  ArrowRight
 } from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
@@ -30,10 +26,7 @@ const Authentication = () => {
   // UI state
   const [authMethod, setAuthMethod] = useState<'token' | 'repo'>('token');
   const [isLoading, setIsLoading] = useState(false);
-  const [createNewRepo, setCreateNewRepo] = useState(false);
-  const [newRepoName, setNewRepoName] = useState('');
   const [userRepos, setUserRepos] = useState<{name: string, full_name: string}[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   
   const { setToken: setAuthToken, setUser, user, connectRepo } = useAuthStore();
   const navigate = useNavigate();
@@ -45,39 +38,9 @@ const Authentication = () => {
     }
   }, [user, navigate]);
 
-  const handleGitHubAuth = async () => {
-    setIsLoading(true);
-    
-    try {
-      // In a real implementation, this would redirect to GitHub OAuth
-      toast.info('Redirecting to GitHub for authentication...');
-      
-      // For full OAuth implementation, you would redirect to:
-      // window.location.href = 'https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=repo';
-      
-      // Simulate GitHub OAuth flow - in production, replace this with actual OAuth
-      setTimeout(() => {
-        const simulatedToken = prompt("Enter your GitHub token (simulation of OAuth):");
-        if (simulatedToken) {
-          handleAuthWithToken(simulatedToken);
-        } else {
-          setIsLoading(false);
-          toast.error('Authentication cancelled');
-        }
-      }, 1500);
-    } catch (error) {
-      console.error('GitHub auth error:', error);
-      toast.error('Failed to authenticate with GitHub');
-      setIsLoading(false);
-    }
-  };
-
-  const handleAuthWithToken = async (providedToken?: string) => {
-    const tokenToUse = providedToken || token;
-    
-    if (!tokenToUse.trim()) {
+  const handleAuthWithToken = async () => {
+    if (!token.trim()) {
       toast.error('Please enter a GitHub token');
-      setIsLoading(false);
       return;
     }
 
@@ -85,7 +48,7 @@ const Authentication = () => {
     
     try {
       // Create Octokit instance with the token
-      const octokit = new Octokit({ auth: tokenToUse });
+      const octokit = new Octokit({ auth: token });
       
       // Get user data to verify the token
       const { data } = await octokit.rest.users.getAuthenticated();
@@ -97,7 +60,7 @@ const Authentication = () => {
           email: data.email || '',
           avatarUrl: data.avatar_url
         });
-        setAuthToken(tokenToUse);
+        setAuthToken(token);
         
         // Fetch user repositories
         const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
@@ -122,41 +85,6 @@ const Authentication = () => {
   };
   
   const handleAuthWithRepo = async () => {
-    if (createNewRepo) {
-      if (!newRepoName.trim()) {
-        toast.error('Please enter a repository name');
-        return;
-      }
-      
-      setIsLoading(true);
-      
-      try {
-        // Create Octokit instance with the token
-        const octokit = new Octokit({ auth: token });
-        
-        // Create the new repository
-        const { data } = await octokit.rest.repos.createForAuthenticatedUser({
-          name: newRepoName,
-          description: 'Repository for SLYNC app data',
-          auto_init: true
-        });
-        
-        if (data) {
-          // Connect to the new repository
-          await connectRepo(data.html_url);
-          navigate('/');
-          toast.success('Repository created and connected successfully!');
-        }
-      } catch (error) {
-        console.error('Repository creation error:', error);
-        toast.error('Failed to create repository. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-      
-      return;
-    }
-    
     if (!repoUrl.trim()) {
       toast.error('Please enter a GitHub repository URL');
       return;
@@ -194,22 +122,11 @@ const Authentication = () => {
     setRepoUrl(`https://github.com/${repoFullName}`);
   };
   
-  const filteredRepos = userRepos.filter(repo => 
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
   const renderAuthForm = () => {
     if (authMethod === 'token') {
       if (user && token) {
         return (
           <div className="space-y-6">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary/30">
-                <User size={32} className="text-matrix-primary" />
-              </div>
-            </div>
-            
             <div className="matrix-glass p-4 rounded-md">
               <p className="text-matrix-primary/70 mb-2">Authenticated as:</p>
               <p className="neon-text font-mono">{user.username}</p>
@@ -240,24 +157,9 @@ const Authentication = () => {
             GitHub Authentication
           </h2>
           
-          <NeonButton 
-            onClick={handleGitHubAuth} 
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
-            {!isLoading && <Github size={16} className="ml-2" />}
-          </NeonButton>
-          
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-matrix-primary/30"></div>
-            <span className="flex-shrink mx-4 text-matrix-primary/60">OR</span>
-            <div className="flex-grow border-t border-matrix-primary/30"></div>
-          </div>
-          
           <div>
-            <label htmlFor="github-token" className="block text-matrix-primary/80 mb-2 flex items-center">
-              <Lock size={16} className="mr-2" />
+            <label className="block text-matrix-primary/80 mb-2 flex items-center">
+              <Github size={16} className="mr-2" />
               GitHub Personal Access Token
             </label>
             <NeonInput
@@ -274,7 +176,7 @@ const Authentication = () => {
           </div>
           
           <NeonButton 
-            onClick={() => handleAuthWithToken()} 
+            onClick={handleAuthWithToken} 
             className="w-full"
             disabled={isLoading}
           >
@@ -297,98 +199,44 @@ const Authentication = () => {
             Connect Repository
           </h2>
           
-          <div className="flex mb-4">
-            <button 
-              className={`flex-1 py-2 px-4 ${!createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-              onClick={() => setCreateNewRepo(false)}
-            >
-              <span className="flex items-center justify-center text-sm">
-                <Github size={14} className="mr-1" />
-                Connect Existing
-              </span>
-            </button>
-            <button 
-              className={`flex-1 py-2 px-4 ${createNewRepo ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-              onClick={() => setCreateNewRepo(true)}
-            >
-              <span className="flex items-center justify-center text-sm">
-                <Plus size={14} className="mr-1" />
-                Create New
-              </span>
-            </button>
-          </div>
-          
-          {createNewRepo ? (
-            <div>
-              <label className="block text-matrix-primary/80 mb-2 flex items-center">
-                <Plus size={16} className="mr-2" />
-                New Repository Name
-              </label>
-              <NeonInput
-                type="text"
-                value={newRepoName}
-                onChange={(e) => setNewRepoName(e.target.value)}
-                placeholder="my-slync-repo"
-              />
-              <p className="text-matrix-primary/60 text-sm mt-2">
-                A new public repository will be created
-              </p>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-matrix-primary/80 mb-2 flex items-center">
-                <Github size={16} className="mr-2" />
-                GitHub Repository URL
-              </label>
-              <NeonInput
-                type="text"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="https://github.com/username/repo"
-                icon={<Github size={18} />}
-              />
-              
-              {userRepos.length > 0 && (
-                <div className="mt-4">
-                  <div className="relative mb-2">
-                    <NeonInput
-                      type="text"
-                      placeholder="Search your repositories"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      icon={<Search size={18} />}
-                    />
-                  </div>
-                  <div className="max-h-40 overflow-y-auto matrix-glass p-2 rounded">
-                    {filteredRepos.length > 0 ? (
-                      filteredRepos.map((repo, index) => (
-                        <div 
-                          key={index} 
-                          className="p-2 hover:bg-matrix-primary/10 rounded cursor-pointer flex items-center"
-                          onClick={() => handleSelectRepo(repo.full_name)}
-                        >
-                          <Github size={14} className="mr-2 text-matrix-primary/70" />
-                          <span className="text-matrix-primary text-sm">{repo.full_name}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center p-2 text-matrix-primary/50 text-sm">
-                        No repositories found
-                      </div>
-                    )}
-                  </div>
+          <div>
+            <label className="block text-matrix-primary/80 mb-2 flex items-center">
+              <Github size={16} className="mr-2" />
+              GitHub Repository URL
+            </label>
+            <NeonInput
+              type="text"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="https://github.com/username/repo"
+              icon={<Github size={18} />}
+            />
+            
+            {userRepos.length > 0 && (
+              <div className="mt-4">
+                <div className="max-h-40 overflow-y-auto matrix-glass p-2 rounded">
+                  {userRepos.map((repo, index) => (
+                    <div 
+                      key={index} 
+                      className="p-2 hover:bg-matrix-primary/10 rounded cursor-pointer flex items-center"
+                      onClick={() => handleSelectRepo(repo.full_name)}
+                    >
+                      <Github size={14} className="mr-2 text-matrix-primary/70" />
+                      <span className="text-matrix-primary text-sm">{repo.full_name}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
           
           <NeonButton 
             onClick={handleAuthWithRepo} 
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Connecting...' : createNewRepo ? 'Create Repository' : 'Connect Repository'}
+            {isLoading ? 'Connecting...' : 'Connect Repository'}
             {!isLoading && <ArrowRight size={16} className="ml-2" />}
           </NeonButton>
           
@@ -434,7 +282,16 @@ const Authentication = () => {
             {renderAuthForm()}
             
             <div className="mt-6 pt-4 border-t border-matrix-primary/20">
-              <h3 className="text-matrix-primary/90 font-bold mb-2">How to get a token:</h3>
+              <h3 className="text-matrix-primary/90 font-bold mb-2">GitHub OAuth App Registration Info:</h3>
+              <p className="text-matrix-primary/80 mb-2">To register your own GitHub OAuth app:</p>
+              <ul className="list-disc list-inside text-matrix-primary/70 text-sm space-y-1">
+                <li>Homepage URL: <code className="bg-black/40 px-1 rounded">https://yourdomain.com</code></li>
+                <li>Authorization callback URL: <code className="bg-black/40 px-1 rounded">https://yourdomain.com/auth/callback</code></li>
+                <li>Enable Device Flow: ✓</li>
+                <li>Description: "SLYNC - Self-hosted productivity suite with GitHub sync"</li>
+              </ul>
+
+              <h3 className="text-matrix-primary/90 font-bold mt-4 mb-2">How to get a token:</h3>
               <ol className="list-decimal list-inside text-matrix-primary/70 text-sm space-y-1">
                 <li>Go to GitHub Settings → Developer settings → <a 
                   href="https://github.com/settings/tokens" 

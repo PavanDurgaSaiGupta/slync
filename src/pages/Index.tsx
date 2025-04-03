@@ -140,7 +140,7 @@ const Index: React.FC = () => {
                   <Code size={40} className="text-matrix-primary" />
                 </motion.div>
               </div>
-              <GlitchText text="Slync Terminal" variant="title" className="mb-4" />
+              <GlitchText text="SLYNC Terminal" variant="title" className="mb-4" />
               <p className="text-matrix-primary/70 text-lg">
                 Your digital sync navigator
               </p>
