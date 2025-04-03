@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { Github, BookOpen, CheckSquare, FileText, Settings, Upload, Download, Terminal, Info } from 'lucide-react';
+import { Github, BookOpen, CheckSquare, FileText, Settings, Upload, Download, Terminal, Info, Code } from 'lucide-react';
 import { toast } from 'sonner';
 
 import GlitchText from '@/components/GlitchText';
@@ -51,6 +52,7 @@ const Index: React.FC = () => {
     return () => clearTimeout(timer);
   }, [user]);
 
+  // Effect to show error toast if there's an error
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -129,7 +131,16 @@ const Index: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="text-center mb-12"
             >
-              <GlitchText text="SLYNC Terminal" variant="title" className="mb-4" />
+              <div className="flex justify-center mb-4">
+                <motion.div 
+                  className="p-4 rounded-full border-2 border-matrix-primary shadow-glow"
+                  animate={{ boxShadow: ['0 0 10px 2px var(--theme-primary)', '0 0 20px 5px var(--theme-primary)', '0 0 10px 2px var(--theme-primary)'] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <Code size={40} className="text-matrix-primary" />
+                </motion.div>
+              </div>
+              <GlitchText text="Slync Terminal" variant="title" className="mb-4" />
               <p className="text-matrix-primary/70 text-lg">
                 Your digital sync navigator
               </p>
@@ -206,6 +217,10 @@ const Index: React.FC = () => {
                       >
                         {isLoading ? 'Connecting...' : 'Connect Repository'}
                       </NeonButton>
+                      
+                      <p className="text-matrix-primary/60 text-sm mt-2">
+                        Don't have a repository? <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="underline">Create one</a> or use an existing one.
+                      </p>
                     </div>
                   )}
                 </motion.div>
@@ -228,7 +243,7 @@ const Index: React.FC = () => {
                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                         <div className="w-3 h-3 rounded-full bg-green-500"></div>
                       </div>
-                      <p className="text-xs text-matrix-primary/60">matrix-terminal</p>
+                      <p className="text-xs text-matrix-primary/60">slync-terminal</p>
                     </div>
                     
                     <div className="border-t border-matrix-primary/20 pt-4">
