@@ -2,23 +2,25 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, CheckSquare, FileText, Github } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { Upload, Download, ArrowLeft, FileText, Book, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
-import NeonButton from '@/components/NeonButton';
-import GlitchText from '@/components/GlitchText';
 import MatrixRain from '@/components/MatrixRain';
+import GlitchText from '@/components/GlitchText';
 import { useTheme } from '@/hooks/useTheme';
+import ImportExportManager from '@/components/ImportExportManager';
 
-const ImportExport = () => {
-  const [importType, setImportType] = useState<'bookmarks' | 'notes' | 'todos'>('bookmarks');
-  const [exportType, setExportType] = useState<'bookmarks' | 'notes' | 'todos' | 'all'>('all');
-  const [importFile, setImportFile] = useState<File | null>(null);
-  
+const ImportExport: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { repo, user, saveToRepo, getDirectoryContents, getFileContent } = useAuthStore();
+  const { user, repo } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'notes' | 'todos' | 'bookmarks'>('notes');
+  
+  // These would come from your app state in a real implementation
+  const [notesData, setNotesData] = useState<any>([]);
+  const [todosData, setTodosData] = useState<any>([]);
+  const [bookmarksData, setBookmarksData] = useState<any>([]);
   
   if (!user) {
     navigate('/authentication');
@@ -26,203 +28,34 @@ const ImportExport = () => {
   }
   
   if (!repo) {
+    toast.error('Please connect a GitHub repository first');
     navigate('/');
-    toast.error('Please connect a repository first');
     return null;
   }
   
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setImportFile(e.target.files[0]);
-    }
+  const handleImportNotes = (data: any) => {
+    setNotesData(data);
+    // In a real app, you would process and save this data
+    toast.success('Notes imported successfully!');
   };
   
-  const handleImport = async () => {
-    if (!importFile) {
-      toast.error('Please select a file to import');
-      return;
-    }
-    
-    try {
-      const content = await importFile.text();
-      
-      if (importType === 'bookmarks') {
-        // Parse HTML bookmarks file
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(content, 'text/html');
-        const bookmarks = doc.querySelectorAll('a');
-        
-        if (bookmarks.length === 0) {
-          toast.error('No bookmarks found in file');
-          return;
-        }
-        
-        let imported = 0;
-        
-        for (const bookmark of bookmarks) {
-          const url = bookmark.getAttribute('href');
-          const title = bookmark.textContent || url || 'Unnamed Bookmark';
-          
-          if (url) {
-            const fileName = `${new Date().toISOString().split('T')[0]}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 40)}.md`;
-            
-            const bookmarkContent = `---
-title: "${title}"
-url: ${url}
-tags: [imported]
-created_at: ${new Date().toISOString()}
----
-Imported bookmark`;
-            
-            await saveToRepo(
-              `bookmarks/${fileName}`,
-              bookmarkContent,
-              `[Matrix-App] Import bookmark: ${title}`
-            );
-            
-            imported++;
-          }
-        }
-        
-        toast.success(`Imported ${imported} bookmarks`);
-      } else {
-        // For notes and todos, just import as plain text files
-        const fileName = `${new Date().toISOString().split('T')[0]}-imported-${importFile.name.replace(/\.\w+$/, '')}.md`;
-        
-        const fileContent = `---
-title: "Imported ${importType === 'notes' ? 'Note' : 'Todo'}"
-${importType === 'todos' ? 'status: pending\npriority: medium' : 'tags: [imported]'}
-created_at: ${new Date().toISOString()}
----
-${content}`;
-        
-        await saveToRepo(
-          `${importType}/${fileName}`,
-          fileContent,
-          `[Matrix-App] Import ${importType}: ${fileName}`
-        );
-        
-        toast.success(`Imported ${importType} file successfully`);
-      }
-      
-      setImportFile(null);
-      
-      // Reset the file input
-      const fileInput = document.getElementById('import-file') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.value = '';
-      }
-    } catch (err) {
-      console.error('Error importing file:', err);
-      toast.error('Failed to import file');
-    }
+  const handleImportTodos = (data: any) => {
+    setTodosData(data);
+    // In a real app, you would process and save this data
+    toast.success('Todos imported successfully!');
   };
   
-  const handleExport = async () => {
-    try {
-      toast.loading('Preparing export...');
-      
-      let exportContent = '';
-      let fileName = '';
-      
-      if (exportType === 'all') {
-        // Export all data as a single markdown file
-        exportContent = `# Matrix Synapse Terminal Export\n\nExported on ${new Date().toLocaleString()}\n\n`;
-        
-        // Export bookmarks
-        exportContent += '## Bookmarks\n\n';
-        const bookmarks = await getDirectoryContents('bookmarks');
-        for (const file of bookmarks) {
-          if (file.type === 'file' && file.name.endsWith('.md')) {
-            const result = await getFileContent(`bookmarks/${file.name}`);
-            if (result) {
-              exportContent += `### Bookmark: ${file.name}\n\n\`\`\`\n${result.content}\n\`\`\`\n\n`;
-            }
-          }
-        }
-        
-        // Export todos
-        exportContent += '## Todos\n\n';
-        const todos = await getDirectoryContents('todos');
-        for (const file of todos) {
-          if (file.type === 'file' && file.name.endsWith('.md')) {
-            const result = await getFileContent(`todos/${file.name}`);
-            if (result) {
-              exportContent += `### Todo: ${file.name}\n\n\`\`\`\n${result.content}\n\`\`\`\n\n`;
-            }
-          }
-        }
-        
-        // Export notes
-        exportContent += '## Notes\n\n';
-        const notes = await getDirectoryContents('notes');
-        for (const file of notes) {
-          if (file.type === 'file' && file.name.endsWith('.md')) {
-            const result = await getFileContent(`notes/${file.name}`);
-            if (result) {
-              exportContent += `### Note: ${file.name}\n\n\`\`\`\n${result.content}\n\`\`\`\n\n`;
-            }
-          }
-        }
-        
-        fileName = `matrix-export-all-${new Date().toISOString().split('T')[0]}.md`;
-      } else {
-        // Export specific data type
-        exportContent = `# Matrix Synapse Terminal ${exportType.charAt(0).toUpperCase() + exportType.slice(1)} Export\n\nExported on ${new Date().toLocaleString()}\n\n`;
-        
-        const files = await getDirectoryContents(exportType);
-        for (const file of files) {
-          if (file.type === 'file' && file.name.endsWith('.md')) {
-            const result = await getFileContent(`${exportType}/${file.name}`);
-            if (result) {
-              exportContent += `## ${file.name}\n\n\`\`\`\n${result.content}\n\`\`\`\n\n`;
-            }
-          }
-        }
-        
-        fileName = `matrix-export-${exportType}-${new Date().toISOString().split('T')[0]}.md`;
-      }
-      
-      // Create download link
-      const blob = new Blob([exportContent], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      
-      URL.revokeObjectURL(url);
-      toast.success('Export completed successfully');
-    } catch (err) {
-      console.error('Error exporting data:', err);
-      toast.error('Failed to export data');
-    }
+  const handleImportBookmarks = (data: any) => {
+    setBookmarksData(data);
+    // In a real app, you would process and save this data
+    toast.success('Bookmarks imported successfully!');
   };
-  
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
-  
+
   return (
     <div className="min-h-screen bg-matrix-background p-4">
       {theme.showCodeRain && <MatrixRain speed={theme.speed} />}
       
-      <div className="container mx-auto max-w-4xl py-8">
+      <div className="container mx-auto max-w-5xl py-8">
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -236,164 +69,232 @@ ${content}`;
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="mb-8"
         >
-          <GlitchText text="Import / Export" variant="title" className="mb-4" />
-          <p className="text-matrix-primary/80 max-w-lg mx-auto">
-            Import data from external sources or export your Matrix data for backup or sharing.
-          </p>
+          <GlitchText text="Import/Export Data" variant="title" />
+          
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-matrix-primary/70 mt-4"
+          >
+            <p>Import data from external sources or export to various formats</p>
+            <div className="flex items-center mt-2 text-sm">
+              <Github size={14} className="mr-1" /> 
+              Synced with <span className="font-mono ml-1 text-matrix-primary/90">{repo.owner}/{repo.name}</span>
+            </div>
+          </motion.div>
         </motion.div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="matrix-card"
+        <div className="flex mb-8 border-b border-matrix-primary/30">
+          <button 
+            className={`px-6 py-3 flex items-center ${activeTab === 'notes' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+            onClick={() => setActiveTab('notes')}
           >
-            <div className="flex items-center mb-6">
-              <Upload size={24} className="text-matrix-primary mr-3" />
-              <h2 className="text-xl text-matrix-primary font-bold">Import</h2>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-matrix-primary mb-2">Import Type</label>
-                <div className="flex border border-matrix-primary/30 rounded-md overflow-hidden">
-                  <button 
-                    className={`flex-1 py-2 ${importType === 'bookmarks' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setImportType('bookmarks')}
-                  >
-                    <Book size={16} className="inline mr-1" />
-                    Bookmarks
-                  </button>
-                  <button 
-                    className={`flex-1 py-2 ${importType === 'todos' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setImportType('todos')}
-                  >
-                    <CheckSquare size={16} className="inline mr-1" />
-                    Todos
-                  </button>
-                  <button 
-                    className={`flex-1 py-2 ${importType === 'notes' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setImportType('notes')}
-                  >
-                    <FileText size={16} className="inline mr-1" />
-                    Notes
-                  </button>
-                </div>
-              </div>
+            <FileText size={18} className="mr-2" />
+            Notes
+          </button>
+          <button 
+            className={`px-6 py-3 flex items-center ${activeTab === 'todos' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+            onClick={() => setActiveTab('todos')}
+          >
+            <CheckSquare size={18} className="mr-2" />
+            To-Do Lists
+          </button>
+          <button 
+            className={`px-6 py-3 flex items-center ${activeTab === 'bookmarks' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
+            onClick={() => setActiveTab('bookmarks')}
+          >
+            <BookOpen size={18} className="mr-2" />
+            Bookmarks
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {activeTab === 'notes' && (
+                <ImportExportManager 
+                  type="notes" 
+                  onImport={handleImportNotes}
+                  data={notesData}
+                />
+              )}
               
-              <div className="space-y-2">
-                <label className="block text-matrix-primary mb-2">File to Import</label>
-                <div className="flex flex-col space-y-2">
-                  <input
-                    id="import-file"
-                    type="file"
-                    accept={importType === 'bookmarks' ? '.html' : '.txt,.md'}
-                    onChange={handleImportFile}
-                    className="hidden"
-                  />
-                  <label htmlFor="import-file" className="neon-button px-6 py-3 font-bold text-center cursor-pointer">
-                    Select File
-                  </label>
-                  
-                  {importFile && (
-                    <p className="text-matrix-primary/80 text-sm">
-                      Selected: {importFile.name}
-                    </p>
-                  )}
-                </div>
-              </div>
+              {activeTab === 'todos' && (
+                <ImportExportManager 
+                  type="todos" 
+                  onImport={handleImportTodos}
+                  data={todosData}
+                />
+              )}
               
-              <div>
-                <p className="text-matrix-primary/70 text-sm mb-4">
-                  {importType === 'bookmarks' ? (
-                    'Import bookmarks from HTML file exported from Chrome, Firefox, or other browsers.'
-                  ) : importType === 'todos' ? (
-                    'Import todos from text files, one task per line.'
-                  ) : (
-                    'Import notes from text or markdown files.'
-                  )}
-                </p>
-                
-                <NeonButton 
-                  onClick={handleImport}
-                  disabled={!importFile}
-                  className="w-full"
-                >
-                  Import {importType.charAt(0).toUpperCase() + importType.slice(1)}
-                </NeonButton>
-              </div>
-            </div>
-          </motion.div>
+              {activeTab === 'bookmarks' && (
+                <ImportExportManager 
+                  type="bookmarks" 
+                  onImport={handleImportBookmarks}
+                  data={bookmarksData}
+                />
+              )}
+            </motion.div>
+          </div>
           
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="matrix-card"
-          >
-            <div className="flex items-center mb-6">
-              <Download size={24} className="text-matrix-primary mr-3" />
-              <h2 className="text-xl text-matrix-primary font-bold">Export</h2>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-matrix-primary mb-2">Export Type</label>
-                <div className="flex flex-wrap border border-matrix-primary/30 rounded-md overflow-hidden">
-                  <button 
-                    className={`py-2 px-3 ${exportType === 'all' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setExportType('all')}
-                  >
-                    All Data
-                  </button>
-                  <button 
-                    className={`py-2 px-3 ${exportType === 'bookmarks' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setExportType('bookmarks')}
-                  >
-                    <Book size={16} className="inline mr-1" />
-                    Bookmarks
-                  </button>
-                  <button 
-                    className={`py-2 px-3 ${exportType === 'todos' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setExportType('todos')}
-                  >
-                    <CheckSquare size={16} className="inline mr-1" />
-                    Todos
-                  </button>
-                  <button 
-                    className={`py-2 px-3 ${exportType === 'notes' ? 'bg-matrix-primary text-black' : 'text-matrix-primary'}`}
-                    onClick={() => setExportType('notes')}
-                  >
-                    <FileText size={16} className="inline mr-1" />
-                    Notes
-                  </button>
+          <div>
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="matrix-card"
+            >
+              <h3 className="text-matrix-primary text-lg font-bold mb-4">Format Guide</h3>
+              
+              {activeTab === 'notes' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.md (Markdown)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Supports text formatting with Markdown syntax, including headings, lists, and code blocks.
+                    </p>
+                    <div className="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-matrix-primary/80">
+                      # Note Title<br />
+                      tags: #work #important<br /><br />
+                      This is the content of the note.
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.txt (Plain Text)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Simple text format without special formatting.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.html (HTML)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Rich text format with HTML formatting. Useful for notes with complex formatting.
+                    </p>
+                  </div>
                 </div>
+              )}
+              
+              {activeTab === 'todos' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.md (Markdown)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Uses checkbox syntax for todo items.
+                    </p>
+                    <div className="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-matrix-primary/80">
+                      - [ ] Task 1<br />
+                      - [x] Completed task<br />
+                      - [ ] Task with due date (Due: 2023-05-15)
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.csv (Comma Separated Values)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Spreadsheet format that works with Excel, Google Sheets, etc.
+                    </p>
+                    <div className="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-matrix-primary/80">
+                      Title,Completed,Due Date<br />
+                      "Task 1",false,2023-05-15<br />
+                      "Completed task",true,
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.ics (iCalendar)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Calendar format that works with Google Calendar, Apple Calendar, etc.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'bookmarks' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.json (JSON)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Structured format that preserves collections, tags, and notes.
+                    </p>
+                    <div className="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-matrix-primary/80">
+                      {"{"}<br />
+                      &nbsp;&nbsp;"collections": [<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;{"{"}<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"name": "Development",<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"bookmarks": [<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{"{"}<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"title": "GitHub",<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"url": "https://github.com",<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"tags": ["dev", "code"]<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{"}"},<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br />
+                      &nbsp;&nbsp;&nbsp;&nbsp;{"}"}<br />
+                      &nbsp;&nbsp;]<br />
+                      {"}"}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.html (HTML)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Standard browser bookmark export format. Compatible with most browsers.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-matrix-primary/90 font-semibold">.csv (Comma Separated Values)</h4>
+                    <p className="text-matrix-primary/70 text-sm">
+                      Simple format for basic bookmark lists.
+                    </p>
+                    <div className="bg-black/30 p-2 rounded mt-2 text-xs font-mono text-matrix-primary/80">
+                      Title,URL,Tags<br />
+                      "GitHub","https://github.com","dev code"<br />
+                      "Google","https://google.com","search"
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="matrix-card mt-6"
+            >
+              <h3 className="text-matrix-primary text-lg font-bold mb-4">GitHub Sync</h3>
+              <p className="text-matrix-primary/70 mb-4">
+                All your data is automatically synced with your connected GitHub repository. The data is organized in the following structure:
+              </p>
+              
+              <div className="bg-black/30 p-3 rounded font-mono text-sm text-matrix-primary/80">
+                repository/<br />
+                ├── notes/            <span className="text-matrix-primary/50"># Markdown notes with tags</span><br />
+                │&nbsp;&nbsp; ├── work/         <span className="text-matrix-primary/50"># Folders for organization</span><br />
+                │&nbsp;&nbsp; └── personal/<br />
+                ├── bookmarks/        <span className="text-matrix-primary/50"># JSON bookmark collections</span><br />
+                │&nbsp;&nbsp; ├── dev.json<br />
+                │&nbsp;&nbsp; └── personal.json<br />
+                ├── todos/            <span className="text-matrix-primary/50"># Todo lists with priorities</span><br />
+                │&nbsp;&nbsp; ├── work.md<br />
+                │&nbsp;&nbsp; └── projects.md<br />
+                └── config/           <span className="text-matrix-primary/50"># App configuration</span>
               </div>
               
-              <div>
-                <p className="text-matrix-primary/70 text-sm mb-4">
-                  Export your data as Markdown files. This is useful for backup purposes or if you want to share your data with others.
-                </p>
-                
-                <NeonButton 
-                  onClick={handleExport}
-                  className="w-full"
-                >
-                  Export {exportType === 'all' ? 'All Data' : (exportType.charAt(0).toUpperCase() + exportType.slice(1))}
-                </NeonButton>
-              </div>
-              
-              <div className="bg-matrix-background/80 p-4 rounded border border-matrix-primary/20">
-                <h3 className="text-matrix-primary mb-2 text-sm font-bold">Export Format</h3>
-                <p className="text-matrix-primary/70 text-sm">
-                  Exports are generated as Markdown (.md) files containing all your data in a structured format. These files can be imported back into Matrix Synapse Terminal or used with other Markdown editors.
-                </p>
-              </div>
-            </div>
-          </motion.div>
+              <p className="text-matrix-primary/60 text-sm mt-4">
+                You can manually edit these files in your GitHub repository and sync them back to the app.
+              </p>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>

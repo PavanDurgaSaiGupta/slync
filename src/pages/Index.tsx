@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +51,6 @@ const Index: React.FC = () => {
     return () => clearTimeout(timer);
   }, [user]);
 
-  // Effect to show error toast if there's an error
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -131,9 +129,9 @@ const Index: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="text-center mb-12"
             >
-              <GlitchText text="Matrix Synapse Terminal" variant="title" className="mb-4" />
+              <GlitchText text="SLYNC Terminal" variant="title" className="mb-4" />
               <p className="text-matrix-primary/70 text-lg">
-                Your digital reality navigator
+                Your digital sync navigator
               </p>
               
               <motion.div

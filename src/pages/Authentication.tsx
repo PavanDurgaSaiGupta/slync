@@ -9,8 +9,6 @@ import {
   Github, 
   Lock, 
   User, 
-  Mail,
-  KeyRound,
   ArrowRight, 
   Code, 
   Plus,
@@ -29,15 +27,8 @@ const Authentication = () => {
   const [token, setToken] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   
-  // Regular authentication
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
   // UI state
   const [authMethod, setAuthMethod] = useState<'token' | 'repo'>('token');
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [createNewRepo, setCreateNewRepo] = useState(false);
   const [newRepoName, setNewRepoName] = useState('');
@@ -61,11 +52,11 @@ const Authentication = () => {
       // In a real implementation, this would redirect to GitHub OAuth
       toast.info('Redirecting to GitHub for authentication...');
       
-      // Simulate GitHub OAuth flow
-      // In a real implementation, this would be handled by GitHub OAuth
+      // For full OAuth implementation, you would redirect to:
+      // window.location.href = 'https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=repo';
+      
+      // Simulate GitHub OAuth flow - in production, replace this with actual OAuth
       setTimeout(() => {
-        // This is where we'd handle the OAuth callback
-        // For now, just show a prompt for token
         const simulatedToken = prompt("Enter your GitHub token (simulation of OAuth):");
         if (simulatedToken) {
           handleAuthWithToken(simulatedToken);
@@ -146,7 +137,7 @@ const Authentication = () => {
         // Create the new repository
         const { data } = await octokit.rest.repos.createForAuthenticatedUser({
           name: newRepoName,
-          description: 'Repository for Slync app data',
+          description: 'Repository for SLYNC app data',
           auto_init: true
         });
         
@@ -187,47 +178,6 @@ const Authentication = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const handleLoginWithPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error('Email and password are required');
-      return;
-    }
-    
-    // Simulate login - in a real app, we would connect to a backend
-    setUser({
-      username: email.split('@')[0],
-      email,
-      avatarUrl: `https://avatars.dicebear.com/api/identicon/${email}.svg`
-    });
-    
-    navigate('/');
-  };
-  
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!username || !email || !password) {
-      toast.error('Username, email, and password are required');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    
-    // Simulate registration - in a real app, we would connect to a backend
-    setUser({
-      username,
-      email,
-      avatarUrl: `https://avatars.dicebear.com/api/identicon/${username}.svg`
-    });
-    
-    navigate('/');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -289,109 +239,6 @@ const Authentication = () => {
           <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
             GitHub Authentication
           </h2>
-          
-          <div className="flex mb-4">
-            <button 
-              className={`flex-1 py-2 px-4 ${authTab === 'login' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-              onClick={() => setAuthTab('login')}
-            >
-              <span className="flex items-center justify-center text-sm">
-                <KeyRound size={14} className="mr-1" />
-                Sign In
-              </span>
-            </button>
-            <button 
-              className={`flex-1 py-2 px-4 ${authTab === 'register' ? 'border-b-2 border-matrix-primary text-matrix-primary' : 'text-matrix-primary/50'}`}
-              onClick={() => setAuthTab('register')}
-            >
-              <span className="flex items-center justify-center text-sm">
-                <Plus size={14} className="mr-1" />
-                Register
-              </span>
-            </button>
-          </div>
-          
-          {authTab === 'login' ? (
-            <form onSubmit={handleLoginWithPassword} className="space-y-4">
-              <div>
-                <NeonInput
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail size={18} />}
-                />
-              </div>
-              
-              <div>
-                <NeonInput
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<KeyRound size={18} />}
-                />
-              </div>
-              
-              <NeonButton type="submit" className="w-full">
-                Sign In
-                <ArrowRight size={16} className="ml-2" />
-              </NeonButton>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <NeonInput
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  icon={<User size={18} />}
-                />
-              </div>
-              
-              <div>
-                <NeonInput
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail size={18} />}
-                />
-              </div>
-              
-              <div>
-                <NeonInput
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<KeyRound size={18} />}
-                />
-              </div>
-              
-              <div>
-                <NeonInput
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  icon={<KeyRound size={18} />}
-                />
-              </div>
-              
-              <NeonButton type="submit" className="w-full">
-                Register
-                <ArrowRight size={16} className="ml-2" />
-              </NeonButton>
-            </form>
-          )}
-          
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-matrix-primary/30"></div>
-            <span className="flex-shrink mx-4 text-matrix-primary/60">OR</span>
-            <div className="flex-grow border-t border-matrix-primary/30"></div>
-          </div>
           
           <NeonButton 
             onClick={handleGitHubAuth} 
@@ -579,8 +426,8 @@ const Authentication = () => {
                 <Code size={40} className="text-matrix-primary" />
               </motion.div>
             </div>
-            <GlitchText text="Slync Terminal" variant="title" className="mb-2" />
-            <p className="text-matrix-primary/70">Access granted only to authorized users</p>
+            <GlitchText text="SLYNC" variant="title" className="mb-2" />
+            <p className="text-matrix-primary/70">Sync your data with GitHub</p>
           </div>
           
           <div className="matrix-card">
@@ -596,7 +443,7 @@ const Authentication = () => {
                   className="text-matrix-primary underline"
                 >Personal access tokens</a></li>
                 <li>Click "Generate new token" (classic)</li>
-                <li>Add a note like "Slync Terminal"</li>
+                <li>Add a note like "SLYNC App"</li>
                 <li>Select the <code className="bg-black/40 px-1 rounded">repo</code> scope</li>
                 <li>Click "Generate token" and copy it</li>
               </ol>
