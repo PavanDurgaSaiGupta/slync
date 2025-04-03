@@ -1,9 +1,10 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { useAuthStore } from './store/authStore';
+import { useTheme } from './hooks/useTheme';
 import ThemeSwitcher from './components/ThemeSwitcher';
 
 // Pages
@@ -20,6 +21,7 @@ import NotFound from './pages/NotFound';
 
 function App() {
   const { user } = useAuthStore();
+  const { theme, setTheme } = useTheme();
 
   // Protected route component
   const Protected = ({ children }: { children: React.ReactNode }) => {
@@ -31,49 +33,30 @@ function App() {
 
   return (
     <Router>
-      <ThemeSwitcher currentTheme={1} onChange={(themeNumber) => {
-        // This component will be managed by ThemeProvider
-      }} />
+      <ThemeSwitcher 
+        currentTheme={theme ? theme.themeNumber : 1} 
+        onChange={(themeNumber) => {
+          if (setTheme) {
+            setTheme({ ...theme, themeNumber });
+          }
+        }} 
+      />
       
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/authentication" element={<Authentication />} />
         <Route path="/how-to-use" element={<HowToUse />} />
-        <Route path="/bookmarks" element={
-          <Protected>
-            <Bookmarks />
-          </Protected>
-        } />
-        <Route path="/todos" element={
-          <Protected>
-            <Todos />
-          </Protected>
-        } />
-        <Route path="/notes" element={
-          <Protected>
-            <Notes />
-          </Protected>
-        } />
-        <Route path="/themes" element={
-          <Protected>
-            <Themes />
-          </Protected>
-        } />
-        <Route path="/import-export" element={
-          <Protected>
-            <ImportExport />
-          </Protected>
-        } />
-        <Route path="/git-terminal" element={
-          <Protected>
-            <GitCommands />
-          </Protected>
-        } />
+        <Route path="/bookmarks" element={<Bookmarks />} />
+        <Route path="/todos" element={<Todos />} />
+        <Route path="/notes" element={<Notes />} />
+        <Route path="/themes" element={<Themes />} />
+        <Route path="/import-export" element={<ImportExport />} />
+        <Route path="/git-terminal" element={<GitCommands />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       
       <Toaster 
-        theme="dark"
+        theme={theme?.isDark ? "dark" : "light"}
         position="top-center"
         richColors
       />

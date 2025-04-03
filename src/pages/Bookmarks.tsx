@@ -39,6 +39,8 @@ const Bookmarks = () => {
   const [currentCollection, setCurrentCollection] = useState<string>('');
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -50,77 +52,114 @@ const Bookmarks = () => {
       return;
     }
     
-    if (!repo) {
-      navigate('/');
-      toast.error('Please connect a repository first');
-      return;
-    }
-    
     loadBookmarks();
   }, [repo, user, navigate]);
   
   const loadBookmarks = async () => {
-    if (!repo) return;
+    setIsLoading(true);
+    setError(null);
     
     try {
-      // First, load collections (which are directories)
-      const baseFiles = await getDirectoryContents('bookmarks');
-      const collectionList: Collection[] = [];
-      
-      for (const file of baseFiles) {
-        if (file.type === 'dir') {
-          try {
-            const collectionFiles = await getDirectoryContents(`bookmarks/${file.name}`);
-            const bookmarkCount = collectionFiles.filter(f => f.type === 'file' && f.name.endsWith('.md')).length;
-            collectionList.push({
-              name: file.name,
-              count: bookmarkCount
-            });
-          } catch (err) {
-            console.error(`Error loading collection ${file.name}:`, err);
-          }
-        }
+      if (!repo) {
+        setError('No GitHub repository connected. Please set up a repository in your account settings.');
+        setIsLoading(false);
+        return;
       }
       
-      setCollections(collectionList);
-      
-      // Now load bookmarks from current collection or root
-      const path = currentCollection ? `bookmarks/${currentCollection}` : 'bookmarks';
-      const files = await getDirectoryContents(path);
-      const loadedBookmarks: Bookmark[] = [];
-      
-      for (const file of files) {
-        if (file.type === 'file' && file.name.endsWith('.md')) {
-          const result = await getFileContent(`${path}/${file.name}`);
-          if (result) {
-            const { content, sha } = result;
-            
-            // Parse frontmatter
-            const titleMatch = content.match(/title: "(.+?)"/);
-            const urlMatch = content.match(/url: (.+)/);
-            const tagsMatch = content.match(/tags: \[(.*?)\]/);
-            
-            const notesContent = content.split('---').slice(2).join('---').trim();
-            
-            if (titleMatch && urlMatch) {
-              loadedBookmarks.push({
-                title: titleMatch[1],
-                url: urlMatch[1],
-                tags: tagsMatch ? tagsMatch[1].split(',').map(tag => tag.trim()) : [],
-                notes: notesContent,
-                path: `${path}/${file.name}`,
-                sha,
-                collection: currentCollection || undefined
+      // First, check if the bookmarks directory exists
+      try {
+        // First, load collections (which are directories)
+        const baseFiles = await getDirectoryContents('bookmarks');
+        const collectionList: Collection[] = [];
+        
+        for (const file of baseFiles) {
+          if (file.type === 'dir') {
+            try {
+              const collectionFiles = await getDirectoryContents(`bookmarks/${file.name}`);
+              const bookmarkCount = collectionFiles.filter(f => f.type === 'file' && f.name.endsWith('.md')).length;
+              collectionList.push({
+                name: file.name,
+                count: bookmarkCount
               });
+            } catch (err) {
+              console.error(`Error loading collection ${file.name}:`, err);
             }
           }
         }
+        
+        setCollections(collectionList);
+        
+        // Now load bookmarks from current collection or root
+        const path = currentCollection ? `bookmarks/${currentCollection}` : 'bookmarks';
+        const files = await getDirectoryContents(path);
+        const loadedBookmarks: Bookmark[] = [];
+        
+        for (const file of files) {
+          if (file.type === 'file' && file.name.endsWith('.md')) {
+            const result = await getFileContent(`${path}/${file.name}`);
+            if (result) {
+              const { content, sha } = result;
+              
+              // Parse frontmatter
+              const titleMatch = content.match(/title: "(.+?)"/);
+              const urlMatch = content.match(/url: (.+)/);
+              const tagsMatch = content.match(/tags: \[(.*?)\]/);
+              
+              const notesContent = content.split('---').slice(2).join('---').trim();
+              
+              if (titleMatch && urlMatch) {
+                loadedBookmarks.push({
+                  title: titleMatch[1],
+                  url: urlMatch[1],
+                  tags: tagsMatch ? tagsMatch[1].split(',').map(tag => tag.trim()) : [],
+                  notes: notesContent,
+                  path: `${path}/${file.name}`,
+                  sha,
+                  collection: currentCollection || undefined
+                });
+              }
+            }
+          }
+        }
+        
+        setBookmarks(loadedBookmarks);
+      } catch (err: any) {
+        console.error('Error loading bookmarks directory:', err);
+        if (err.status === 404) {
+          // Directory doesn't exist yet, create it
+          await createBookmarksStructure();
+        } else {
+          setError('Failed to load bookmarks. Please check your GitHub connection.');
+        }
       }
-      
-      setBookmarks(loadedBookmarks);
     } catch (err) {
-      console.error('Error loading bookmarks:', err);
-      toast.error('Failed to load bookmarks');
+      console.error('Error in bookmarks setup:', err);
+      setError('Failed to load bookmarks. Please check your GitHub connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const createBookmarksStructure = async () => {
+    try {
+      if (!repo) {
+        setError('No GitHub repository connected.');
+        return;
+      }
+
+      // Create the bookmarks directory with a README
+      await saveToRepo(
+        'bookmarks/README.md',
+        '# SLYNC Bookmarks\n\nThis directory contains your saved bookmarks organized in collections.',
+        'Initialize bookmarks structure'
+      );
+      
+      toast.success('Bookmarks directory created!');
+      setCollections([]);
+      setBookmarks([]);
+    } catch (err) {
+      console.error('Error creating bookmarks structure:', err);
+      setError('Failed to initialize bookmarks directory.');
     }
   };
   
@@ -133,6 +172,11 @@ const Bookmarks = () => {
     }
     
     try {
+      if (!repo) {
+        toast.error('No GitHub repository connected.');
+        return;
+      }
+      
       const tagList = tags.split(',').map(tag => tag.trim()).filter(Boolean);
       const collection = selectedCollection || currentCollection;
       const basePath = collection ? `bookmarks/${collection}` : 'bookmarks';
@@ -172,6 +216,11 @@ ${notes}`;
     }
     
     try {
+      if (!repo) {
+        toast.error('No GitHub repository connected.');
+        return;
+      }
+      
       const tagList = tags.split(',').map(tag => tag.trim()).filter(Boolean);
       
       const content = `---
@@ -224,6 +273,11 @@ ${notes}`;
     }
     
     try {
+      if (!repo) {
+        toast.error('No GitHub repository connected.');
+        return;
+      }
+      
       // In a real implementation, we would use GitHub API to delete the file
       // For now we'll just update the UI
       toast.success('Bookmark deleted!');
@@ -243,6 +297,11 @@ ${notes}`;
     if (!name) return;
     
     try {
+      if (!repo) {
+        toast.error('No GitHub repository connected.');
+        return;
+      }
+      
       await saveToRepo(
         `bookmarks/${name}/.gitkeep`,
         '',
@@ -473,12 +532,36 @@ ${notes}`;
               </motion.form>
             )}
             
-            <motion.div
-              variants={containerVariants}
-              className="space-y-4"
-            >
-              {filteredBookmarks.length > 0 ? (
-                filteredBookmarks.map((bookmark, index) => (
+            {isLoading ? (
+              <motion.div
+                variants={itemVariants}
+                className="matrix-card text-center py-12"
+              >
+                <div className="animate-pulse text-matrix-primary">Loading bookmarks...</div>
+              </motion.div>
+            ) : error ? (
+              <motion.div
+                variants={itemVariants}
+                className="matrix-card text-center py-12"
+              >
+                <div className="text-red-400 mb-4">{error}</div>
+                {!repo && (
+                  <NeonButton onClick={() => navigate('/authentication')}>
+                    Connect GitHub Repository
+                  </NeonButton>
+                )}
+                {repo && (
+                  <NeonButton onClick={() => createBookmarksStructure()}>
+                    Initialize Bookmarks
+                  </NeonButton>
+                )}
+              </motion.div>
+            ) : filteredBookmarks.length > 0 ? (
+              <motion.div
+                variants={containerVariants}
+                className="space-y-4"
+              >
+                {filteredBookmarks.map((bookmark, index) => (
                   <motion.div
                     key={index}
                     variants={itemVariants}
@@ -547,26 +630,26 @@ ${notes}`;
                     )}
                   </motion.div>
                 ))
-              ) : (
-                <motion.div variants={itemVariants} className="matrix-card text-center py-12">
-                  <Book size={40} className="mx-auto text-matrix-primary/30 mb-4" />
-                  {searchTerm ? (
-                    <p className="text-matrix-primary/60">No bookmarks match your search</p>
-                  ) : (
-                    <>
-                      <p className="text-matrix-primary/60">No bookmarks saved yet</p>
-                      <NeonButton 
-                        onClick={() => setShowAddForm(true)}
-                        className="mt-4"
-                      >
-                        <Plus size={18} className="mr-2" />
-                        Add your first bookmark
-                      </NeonButton>
-                    </>
-                  )}
-                </motion.div>
-              )}
-            </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div variants={itemVariants} className="matrix-card text-center py-12">
+                <Book size={40} className="mx-auto text-matrix-primary/30 mb-4" />
+                {searchTerm ? (
+                  <p className="text-matrix-primary/60">No bookmarks match your search</p>
+                ) : (
+                  <>
+                    <p className="text-matrix-primary/60">No bookmarks saved yet</p>
+                    <NeonButton 
+                      onClick={() => setShowAddForm(true)}
+                      className="mt-4"
+                    >
+                      <Plus size={18} className="mr-2" />
+                      Add your first bookmark
+                    </NeonButton>
+                  </>
+                )}
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>
