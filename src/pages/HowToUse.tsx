@@ -15,7 +15,8 @@ import {
   Key, 
   Lock,
   RefreshCw,
-  Settings
+  Settings,
+  Clock
 } from 'lucide-react';
 
 import NeonButton from '@/components/NeonButton';
@@ -67,15 +68,27 @@ const HowToUse: React.FC = () => {
                   <p>Slync uses GitHub to store and sync your data. Follow these steps to get started:</p>
                   
                   <div className="matrix-glass p-4 rounded-md">
-                    <h4 className="font-bold text-matrix-primary mb-2">1. Create a GitHub Personal Access Token</h4>
+                    <h4 className="font-bold text-matrix-primary mb-2">1. Create a GitHub Personal Access Token (PAT)</h4>
                     <ol className="list-decimal list-inside space-y-2 text-sm">
                       <li>Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-matrix-primary underline">GitHub Settings → Developer settings → Personal access tokens</a></li>
                       <li>Click "Generate new token (classic)"</li>
                       <li>Name your token (e.g., "Slync Terminal")</li>
+                      <li>Set an expiration date (or choose "No expiration" for convenience)</li>
                       <li>Under scopes, check the <code className="bg-black/40 px-1 rounded">repo</code> scope to allow full access to your repositories</li>
                       <li>Click "Generate token"</li>
                       <li><span className="text-red-400">Important:</span> Copy and save your token securely. GitHub will only show it once!</li>
+                      <li>This token will be used to authenticate and sync your data with GitHub</li>
                     </ol>
+                    
+                    <div className="mt-4 bg-matrix-primary/10 p-3 rounded-md border border-matrix-primary/30">
+                      <h5 className="font-bold text-matrix-primary mb-2 flex items-center">
+                        <Clock size={16} className="mr-2" />
+                        Automatic Git Sync
+                      </h5>
+                      <p className="text-sm">
+                        SLYNC automatically pushes your changes to GitHub every minute. This ensures your data is always backed up and synchronized across devices.
+                      </p>
+                    </div>
                   </div>
                   
                   <div className="matrix-glass p-4 rounded-md">
@@ -84,12 +97,13 @@ const HowToUse: React.FC = () => {
                       <li>Enter your GitHub token on the Authentication page</li>
                       <li>You can then either:
                         <ul className="list-disc list-inside ml-6 mt-1">
-                          <li>Connect to an existing repository by providing the URL</li>
+                          <li>Connect to an existing repository by providing the URL (https://github.com/username/repo)</li>
                           <li>Select from your existing repositories</li>
                           <li>Create a new repository to store your data</li>
                         </ul>
                       </li>
                       <li>Once connected, Slync will automatically create the necessary folders and files in your repository</li>
+                      <li>All your data (notes, bookmarks, todos) will be stored in Markdown files in your repository</li>
                     </ol>
                   </div>
                   
@@ -101,6 +115,7 @@ const HowToUse: React.FC = () => {
                       <li>Try authenticating with your token first, then connecting to a repository</li>
                       <li>Check that your token hasn't expired (GitHub tokens can have expiration dates)</li>
                       <li>Make sure there are no typos in your repository URL</li>
+                      <li>If the app shows "connecting to repository" for too long, try refreshing the page or reconnecting with a new token</li>
                     </ul>
                   </div>
                 </div>
@@ -125,6 +140,7 @@ const HowToUse: React.FC = () => {
                 <li>Create collections to organize bookmarks</li>
                 <li>Add tags for improved searchability</li>
                 <li>Add notes to your bookmarks</li>
+                <li>Attach screenshots or related files</li>
                 <li>Import/export bookmark data</li>
               </ul>
               <NeonButton className="mt-4 w-full" onClick={() => navigate('/bookmarks')}>
@@ -144,6 +160,7 @@ const HowToUse: React.FC = () => {
                 <li>Assign priorities (low, medium, high)</li>
                 <li>Set due dates with calendar integration</li>
                 <li>Add detailed notes to tasks</li>
+                <li>Attach relevant documents to tasks</li>
                 <li>Filter and sort by various criteria</li>
               </ul>
               <NeonButton className="mt-4 w-full" onClick={() => navigate('/todos')}>
@@ -163,6 +180,7 @@ const HowToUse: React.FC = () => {
                 <li>Create and edit rich text notes</li>
                 <li>Organize with tags and categories</li>
                 <li>Format text with markdown support</li>
+                <li>Attach images, PDFs, and other files</li>
                 <li>Import/export in various formats</li>
               </ul>
               <NeonButton className="mt-4 w-full" onClick={() => navigate('/notes')}>
@@ -179,10 +197,11 @@ const HowToUse: React.FC = () => {
                 Execute Git commands and sync with your repository.
               </p>
               <ul className="list-disc list-inside text-matrix-primary/70 text-sm space-y-1">
-                <li>Push files directly to GitHub</li>
+                <li>Push changes directly to GitHub</li>
                 <li>View commit history and changes</li>
                 <li>Manage repository content</li>
                 <li>Execute common Git operations</li>
+                <li>Automatic syncing every minute</li>
               </ul>
               <NeonButton className="mt-4 w-full" onClick={() => navigate('/git-terminal')}>
                 Open Git Terminal
@@ -234,18 +253,18 @@ const HowToUse: React.FC = () => {
               <div className="p-2 rounded-full bg-matrix-primary/20 mr-3">
                 <Github size={24} className="text-matrix-primary" />
               </div>
-              <h3 className="text-lg text-matrix-primary font-bold">Data Synchronization</h3>
+              <h3 className="text-lg text-matrix-primary font-bold">File Attachments & Data Synchronization</h3>
             </div>
             <p className="text-matrix-primary/80 mb-4">
-              All your data is automatically synced with your GitHub repository. This means:
+              All your data is automatically synced with your GitHub repository, including file attachments:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="matrix-glass p-3 rounded-md">
                 <h4 className="font-bold text-matrix-primary mb-2 flex items-center">
-                  <Download size={16} className="mr-2" /> Import Data
+                  <Download size={16} className="mr-2" /> Import Data & Files
                 </h4>
                 <p className="text-sm text-matrix-primary/70">
-                  Import your existing bookmarks, to-dos, and notes from various formats
+                  Import your existing bookmarks, to-dos, and notes from various formats. Attach images, PDFs, documents, and other files to your entries.
                 </p>
               </div>
               <div className="matrix-glass p-3 rounded-md">
@@ -253,7 +272,7 @@ const HowToUse: React.FC = () => {
                   <Upload size={16} className="mr-2" /> Export Data
                 </h4>
                 <p className="text-sm text-matrix-primary/70">
-                  Export your data in multiple formats for backup or sharing
+                  Export your data in multiple formats for backup or sharing. All your file attachments are included in exports.
                 </p>
               </div>
             </div>

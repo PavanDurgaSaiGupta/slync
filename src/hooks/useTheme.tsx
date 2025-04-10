@@ -1,54 +1,56 @@
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type ThemeType = {
   themeNumber: number;
+  showCodeRain: boolean;
   speed: 'slow' | 'normal' | 'fast';
   enableCrtFlicker: boolean;
-  showCodeRain: boolean;
   isDark: boolean;
 };
 
+interface ThemeContextType {
+  theme: ThemeType;
+  setTheme: (theme: Partial<ThemeType>) => void;
+}
+
 const defaultTheme: ThemeType = {
-  themeNumber: 1, // Matrix green by default
-  speed: 'normal',
-  enableCrtFlicker: true,
+  themeNumber: 1,
   showCodeRain: true,
+  speed: 'normal',
+  enableCrtFlicker: false,
   isDark: true,
 };
 
-const ThemeContext = createContext<{
-  theme: ThemeType;
-  setTheme: (theme: Partial<ThemeType>) => void;
-}>({
+const ThemeContext = createContext<ThemeContextType>({
   theme: defaultTheme,
   setTheme: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeType>(() => {
-    const savedTheme = localStorage.getItem('matrix-app-theme');
+    const savedTheme = localStorage.getItem('slync-theme');
     return savedTheme ? JSON.parse(savedTheme) : defaultTheme;
   });
 
   useEffect(() => {
-    localStorage.setItem('matrix-app-theme', JSON.stringify(theme));
+    // Apply CSS variables based on theme
+    document.documentElement.style.setProperty('--theme-primary', getThemeColor(theme.themeNumber));
     
-    // Apply CSS variables for the theme
-    document.documentElement.style.setProperty('--theme-primary', `var(--theme-${theme.themeNumber}-primary)`);
-    document.documentElement.style.setProperty('--theme-secondary', `var(--theme-${theme.themeNumber}-secondary)`);
+    // Apply matrix-background class with the appropriate theme color
+    document.documentElement.classList.forEach(className => {
+      if (className.startsWith('theme-')) {
+        document.documentElement.classList.remove(className);
+      }
+    });
+    document.documentElement.classList.add(`theme-${theme.themeNumber}`);
     
-    // Apply animation classes
-    if (theme.enableCrtFlicker) {
-      document.documentElement.classList.add('enable-flicker');
-    } else {
-      document.documentElement.classList.remove('enable-flicker');
-    }
-    
+    // Save theme to localStorage
+    localStorage.setItem('slync-theme', JSON.stringify(theme));
   }, [theme]);
 
-  const setTheme = (newTheme: Partial<ThemeType>) => {
-    setThemeState(prev => ({ ...prev, ...newTheme }));
+  const setTheme = (newThemeProps: Partial<ThemeType>) => {
+    setThemeState(prevTheme => ({ ...prevTheme, ...newThemeProps }));
   };
 
   return (
@@ -56,6 +58,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
     </ThemeContext.Provider>
   );
+};
+
+// Helper function to get theme color
+const getThemeColor = (themeNumber: number): string => {
+  switch (themeNumber) {
+    case 1: return '#0CFC5C'; // Matrix Green
+    case 2: return '#5D80FE'; // Neo Blue
+    case 3: return '#FF71C5'; // Cyber Pink
+    case 4: return '#FFA500'; // Amber Gold
+    case 5: return '#9B87F5'; // Purple Neon
+    default: return '#0CFC5C';
+  }
 };
 
 export const useTheme = () => useContext(ThemeContext);

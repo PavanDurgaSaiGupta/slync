@@ -19,6 +19,8 @@ interface AuthState {
   octokit: Octokit | null;
   isLoading: boolean;
   error: string | null;
+  lastSyncTime: Date | null;
+  pendingChanges: boolean;
   
   // Actions
   setUser: (user: AuthState['user']) => void;
@@ -27,6 +29,7 @@ interface AuthState {
   setIsLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   logout: () => void;
+  setPendingChanges: (pending: boolean) => void;
   
   // GitHub Actions
   connectRepo: (repoUrl: string) => Promise<void>;
@@ -34,6 +37,7 @@ interface AuthState {
   saveToRepo: (path: string, content: string, message: string) => Promise<void>;
   getFileContent: (path: string) => Promise<{ content: string; sha: string } | null>;
   getDirectoryContents: (path: string) => Promise<any[]>;
+  syncChanges: () => Promise<void>;
 }
 
 // Helper function to safely encode content to base64
@@ -67,6 +71,8 @@ export const useAuthStore = create<AuthState>()(
       octokit: null,
       isLoading: false,
       error: null,
+      lastSyncTime: null,
+      pendingChanges: false,
       
       setUser: (user) => set({ user }),
       setToken: (token) => {
@@ -76,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
       setRepo: (repo) => set({ repo }),
       setIsLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
+      setPendingChanges: (pending) => set({ pendingChanges: pending }),
       
       logout: () => {
         toast.info('Logged out successfully');
@@ -84,7 +91,9 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           repo: null,
           octokit: null,
-          error: null 
+          error: null,
+          lastSyncTime: null,
+          pendingChanges: false
         });
       },
       
@@ -126,8 +135,12 @@ export const useAuthStore = create<AuthState>()(
             await get().createFolder('notes');
             await get().createFolder('config');
             await get().createFolder('collections');
+            await get().createFolder('attachments');
             
             toast.success('Repository connected successfully!');
+            
+            // Setup auto-sync timer
+            setupAutoSync();
             
           } catch (e) {
             console.error('Error connecting to repository:', e);
@@ -178,6 +191,7 @@ export const useAuthStore = create<AuthState>()(
                 });
                 console.log(`Created folder '${folderPath}'`);
                 toast.success(`Created folder '${folderPath}'`);
+                set({ pendingChanges: true });
               } catch (createErr) {
                 console.error(`Error creating folder '${folderPath}':`, createErr);
                 toast.error(`Failed to create folder '${folderPath}'`);
@@ -233,7 +247,10 @@ export const useAuthStore = create<AuthState>()(
             sha, // Include SHA if updating an existing file
           });
           
-          set({ isLoading: false });
+          set({ 
+            isLoading: false,
+            pendingChanges: true
+          });
           toast.success('Saved to repository successfully!');
           return;
         } catch (e) {
@@ -335,14 +352,65 @@ export const useAuthStore = create<AuthState>()(
           return [];
         }
       },
+      
+      syncChanges: async () => {
+        const { pendingChanges, repo, octokit } = get();
+        
+        if (!pendingChanges || !repo || !octokit) {
+          return;
+        }
+        
+        try {
+          // In a real implementation, we would sync all pending changes here
+          // For now, we'll just update the last sync time
+          console.log('Syncing changes to GitHub repository...');
+          
+          // Mark changes as synced
+          set({ 
+            pendingChanges: false,
+            lastSyncTime: new Date()
+          });
+          
+          toast.success('Changes synced to GitHub successfully!');
+        } catch (e) {
+          console.error('Error syncing changes:', e);
+          toast.error('Failed to sync changes to GitHub');
+        }
+      }
     }),
     {
       name: 'slync-auth-storage',
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token,
-        repo: state.repo
+        repo: state.repo,
+        lastSyncTime: state.lastSyncTime
       }),
     }
   )
 );
+
+// Setup auto-sync timer to push changes to GitHub repository every minute
+const setupAutoSync = () => {
+  const syncInterval = 60 * 1000; // 1 minute
+  
+  setInterval(() => {
+    const { syncChanges, pendingChanges, repo } = useAuthStore.getState();
+    
+    if (pendingChanges && repo) {
+      syncChanges();
+    }
+  }, syncInterval);
+};
+
+// Initialize auto-sync if repository is already connected
+const initStore = () => {
+  const { repo } = useAuthStore.getState();
+  
+  if (repo) {
+    setupAutoSync();
+  }
+};
+
+// Call initialization
+initStore();

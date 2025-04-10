@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 const ImportExport = () => {
   const [activeTab, setActiveTab] = useState<'bookmarks' | 'notes' | 'todos'>('bookmarks');
+  const [exportData, setExportData] = useState<any>({});
   
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -48,6 +50,24 @@ const ImportExport = () => {
       toast.success(`${activeTab} exported successfully!`);
     }, 1500);
   };
+
+  // Sample data for export demonstration
+  React.useEffect(() => {
+    // Set sample data based on active tab
+    if (activeTab === 'bookmarks') {
+      setExportData([
+        { title: 'GitHub', url: 'https://github.com', tags: ['dev', 'code'] },
+        { title: 'Google', url: 'https://google.com', tags: ['search'] }
+      ]);
+    } else if (activeTab === 'notes') {
+      setExportData('# Sample Note\n\nThis is a sample note for export demonstration.');
+    } else if (activeTab === 'todos') {
+      setExportData([
+        { title: 'Learn React', completed: true, dueDate: '2025-04-15' },
+        { title: 'Build SLYNC App', completed: false, dueDate: '2025-04-30' }
+      ]);
+    }
+  }, [activeTab]);
   
   return (
     <div className="min-h-screen bg-matrix-background p-4">
@@ -190,7 +210,7 @@ const ImportExport = () => {
             type={activeTab}
             onImport={handleImport}
             onExport={handleExport}
-            data={{}} // Providing empty data object so it's not undefined
+            data={exportData}
           />
         </div>
       </div>

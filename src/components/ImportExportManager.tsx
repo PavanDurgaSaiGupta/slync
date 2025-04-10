@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
@@ -167,6 +168,10 @@ END:VCALENDAR`;
       document.body.removeChild(link);
       
       toast.success(`Exported ${fileName} successfully!`);
+      
+      if (onExport) {
+        onExport();
+      }
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export data');
