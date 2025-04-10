@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -66,9 +65,7 @@ const Bookmarks = () => {
         return;
       }
       
-      // First, check if the bookmarks directory exists
       try {
-        // First, load collections (which are directories)
         const baseFiles = await getDirectoryContents('bookmarks');
         const collectionList: Collection[] = [];
         
@@ -89,7 +86,6 @@ const Bookmarks = () => {
         
         setCollections(collectionList);
         
-        // Now load bookmarks from current collection or root
         const path = currentCollection ? `bookmarks/${currentCollection}` : 'bookmarks';
         const files = await getDirectoryContents(path);
         const loadedBookmarks: Bookmark[] = [];
@@ -100,7 +96,6 @@ const Bookmarks = () => {
             if (result) {
               const { content, sha } = result;
               
-              // Parse frontmatter
               const titleMatch = content.match(/title: "(.+?)"/);
               const urlMatch = content.match(/url: (.+)/);
               const tagsMatch = content.match(/tags: \[(.*?)\]/);
@@ -126,7 +121,6 @@ const Bookmarks = () => {
       } catch (err: any) {
         console.error('Error loading bookmarks directory:', err);
         if (err.status === 404) {
-          // Directory doesn't exist yet, create it
           await createBookmarksStructure();
         } else {
           setError('Failed to load bookmarks. Please check your GitHub connection.');
@@ -147,7 +141,6 @@ const Bookmarks = () => {
         return;
       }
 
-      // Create the bookmarks directory with a README
       await saveToRepo(
         'bookmarks/README.md',
         '# SLYNC Bookmarks\n\nThis directory contains your saved bookmarks organized in collections.',
@@ -182,13 +175,7 @@ const Bookmarks = () => {
       const basePath = collection ? `bookmarks/${collection}` : 'bookmarks';
       const fileName = `${new Date().toISOString().split('T')[0]}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
       
-      const content = `---
-title: "${title}"
-url: ${url}
-tags: [${tagList.join(', ')}]
-created_at: ${new Date().toISOString()}
----
-${notes}`;
+      const content = `---\ntitle: "${title}"\nurl: ${url}\ntags: [${tagList.join(', ')}]\ncreated_at: ${new Date().toISOString()}\n---\n${notes}`;
       
       await saveToRepo(
         `${basePath}/${fileName}`,
@@ -199,7 +186,6 @@ ${notes}`;
       resetForm();
       toast.success('Bookmark added!');
       
-      // Reload bookmarks
       loadBookmarks();
     } catch (err) {
       console.error('Error adding bookmark:', err);
@@ -223,13 +209,7 @@ ${notes}`;
       
       const tagList = tags.split(',').map(tag => tag.trim()).filter(Boolean);
       
-      const content = `---
-title: "${title}"
-url: ${url}
-tags: [${tagList.join(', ')}]
-updated_at: ${new Date().toISOString()}
----
-${notes}`;
+      const content = `---\ntitle: "${title}"\nurl: ${url}\ntags: [${tagList.join(', ')}]\nupdated_at: ${new Date().toISOString()}\n---\n${notes}`;
       
       await saveToRepo(
         editingBookmark.path,
@@ -240,7 +220,6 @@ ${notes}`;
       resetForm();
       toast.success('Bookmark updated!');
       
-      // Reload bookmarks
       loadBookmarks();
     } catch (err) {
       console.error('Error updating bookmark:', err);
@@ -278,8 +257,6 @@ ${notes}`;
         return;
       }
       
-      // In a real implementation, we would use GitHub API to delete the file
-      // For now we'll just update the UI
       toast.success('Bookmark deleted!');
       setBookmarks(bookmarks.filter(b => b.path !== bookmark.path));
       
@@ -320,7 +297,6 @@ ${notes}`;
     setCurrentCollection(name);
     setBookmarks([]);
     
-    // We need to reload bookmarks for this collection
     setTimeout(() => {
       loadBookmarks();
     }, 100);
@@ -330,7 +306,6 @@ ${notes}`;
     setCurrentCollection('');
     setBookmarks([]);
     
-    // Reload bookmarks from root
     setTimeout(() => {
       loadBookmarks();
     }, 100);
@@ -405,7 +380,6 @@ ${notes}`;
         </motion.div>
         
         <div className="flex gap-6">
-          {/* Left sidebar - Collections */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -452,7 +426,6 @@ ${notes}`;
             </div>
           </motion.div>
           
-          {/* Main content */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -629,7 +602,7 @@ ${notes}`;
                       </div>
                     )}
                   </motion.div>
-                ))
+                ))}
               </motion.div>
             ) : (
               <motion.div variants={itemVariants} className="matrix-card text-center py-12">
