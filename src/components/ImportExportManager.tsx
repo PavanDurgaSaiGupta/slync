@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
-import { Download, Upload, File, FileText, BookOpen, CheckSquare } from 'lucide-react';
+import { Download, Upload, File, FileText, BookOpen, CheckSquare, Github } from 'lucide-react';
 import NeonButton from './NeonButton';
 
 type DataType = 'notes' | 'todos' | 'bookmarks';
@@ -10,7 +9,8 @@ type DataType = 'notes' | 'todos' | 'bookmarks';
 interface ImportExportManagerProps {
   type: DataType;
   onImport: (data: any) => void;
-  data: any;
+  onExport?: () => void;
+  data?: any;
 }
 
 const formatDescriptions = {
@@ -37,7 +37,7 @@ const typeIcons = {
   bookmarks: <BookOpen className="mr-2" size={18} />,
 };
 
-const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImport, data }) => {
+const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImport, onExport, data }) => {
   const [selectedFormat, setSelectedFormat] = useState(formatDescriptions[type][0].ext);
   const { repo } = useAuthStore();
 
@@ -52,13 +52,11 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImpor
         const content = event.target?.result as string;
         let parsedData;
         
-        // Parse based on file type
         if (file.name.endsWith('.json')) {
           parsedData = JSON.parse(content);
         } else if (file.name.endsWith('.md') || file.name.endsWith('.txt') || file.name.endsWith('.html')) {
           parsedData = content;
         } else if (file.name.endsWith('.csv')) {
-          // Simple CSV parsing (would need better parser in real app)
           parsedData = content.split('\n').map(line => line.split(','));
         } else {
           toast.error(`Unsupported file format: ${file.name}`);
@@ -100,7 +98,6 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImpor
           break;
           
         case 'md':
-          // Convert data to markdown (simplified example)
           if (type === 'notes') {
             content = data;
           } else if (type === 'todos') {
@@ -117,7 +114,6 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImpor
           break;
           
         case 'html':
-          // Convert data to HTML (simplified example)
           if (type === 'notes') {
             content = `<html><body>${data}</body></html>`;
           } else if (type === 'bookmarks') {
@@ -130,7 +126,6 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImpor
           break;
           
         case 'csv':
-          // Convert data to CSV (simplified example)
           if (type === 'todos') {
             content = 'Title,Completed,Due Date\n' + 
               data.map((todo: any) => `"${todo.title}",${todo.completed},${todo.dueDate || ''}`).join('\n');
@@ -143,7 +138,6 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ type, onImpor
           break;
           
         case 'ics':
-          // Create iCalendar format for todos (simplified)
           content = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//SLYNC//EN
@@ -163,7 +157,6 @@ END:VCALENDAR`;
           mimeType = 'application/json';
       }
       
-      // Create download link
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

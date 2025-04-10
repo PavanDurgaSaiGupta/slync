@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -191,6 +190,7 @@ const ImportExport = () => {
             type={activeTab}
             onImport={handleImport}
             onExport={handleExport}
+            data={{}} // Providing empty data object so it's not undefined
           />
         </div>
       </div>

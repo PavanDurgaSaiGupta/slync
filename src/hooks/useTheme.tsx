@@ -6,6 +6,7 @@ export type ThemeType = {
   speed: 'slow' | 'normal' | 'fast';
   enableCrtFlicker: boolean;
   showCodeRain: boolean;
+  isDark: boolean;
 };
 
 const defaultTheme: ThemeType = {
@@ -13,6 +14,7 @@ const defaultTheme: ThemeType = {
   speed: 'normal',
   enableCrtFlicker: true,
   showCodeRain: true,
+  isDark: true,
 };
 
 const ThemeContext = createContext<{
