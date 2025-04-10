@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -44,27 +43,39 @@ const Bookmarks = () => {
   
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { repo, user, getDirectoryContents, getFileContent, saveToRepo } = useAuthStore();
+  const { repo, user, token, octokit, getDirectoryContents, getFileContent, saveToRepo } = useAuthStore();
   
   useEffect(() => {
-    if (!user) {
+    if (!user || !token) {
       navigate('/authentication');
       return;
     }
     
+    if (!repo || !octokit) {
+      setError('No GitHub repository connected. Please set up a repository on the home page.');
+      setIsLoading(false);
+      return;
+    }
+    
+    console.log("Bookmarks component - repo status:", repo ? "Connected" : "Not connected");
+    console.log("Bookmarks component - token status:", token ? "Available" : "Not available");
+    console.log("Bookmarks component - octokit status:", octokit ? "Available" : "Not available");
+    
     loadBookmarks();
-  }, [repo, user, navigate, currentCollection]);
+  }, [repo, user, token, octokit, navigate, currentCollection]);
   
   const loadBookmarks = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      if (!repo) {
-        setError('No GitHub repository connected. Please set up a repository in your account settings.');
+      if (!repo || !octokit) {
+        setError('No GitHub repository connected. Please set up a repository on the home page.');
         setIsLoading(false);
         return;
       }
+      
+      console.log("Loading bookmarks - repository info:", repo.owner, repo.name);
       
       try {
         console.log('Loading bookmarks...');
@@ -146,7 +157,7 @@ const Bookmarks = () => {
   
   const createBookmarksStructure = async () => {
     try {
-      if (!repo) {
+      if (!repo || !octokit) {
         setError('No GitHub repository connected.');
         return;
       }
@@ -182,7 +193,7 @@ const Bookmarks = () => {
     }
     
     try {
-      if (!repo) {
+      if (!repo || !octokit) {
         toast.error('No GitHub repository connected.');
         return;
       }
@@ -192,7 +203,6 @@ const Bookmarks = () => {
       const basePath = `bookmarks/${collection}`;
       const fileName = `${new Date().toISOString().split('T')[0]}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
       
-      // Create content in markdown format
       const content = `---\ntitle: "${title}"\nurl: ${url}\ntags: [${tagList.join(', ')}]\ncreated_at: ${new Date().toISOString()}\n---\n${notes}`;
       
       console.log(`Saving bookmark to: ${basePath}/${fileName}`);
@@ -223,7 +233,7 @@ const Bookmarks = () => {
     }
     
     try {
-      if (!repo) {
+      if (!repo || !octokit) {
         toast.error('No GitHub repository connected.');
         return;
       }
@@ -273,7 +283,7 @@ const Bookmarks = () => {
     }
     
     try {
-      if (!repo) {
+      if (!repo || !octokit) {
         toast.error('No GitHub repository connected.');
         return;
       }
@@ -295,7 +305,7 @@ const Bookmarks = () => {
     if (!name) return;
     
     try {
-      if (!repo) {
+      if (!repo || !octokit) {
         toast.error('No GitHub repository connected.');
         return;
       }
@@ -532,7 +542,7 @@ const Bookmarks = () => {
               >
                 <div className="text-red-400 mb-4">{error}</div>
                 {!repo && (
-                  <NeonButton onClick={() => navigate('/authentication')}>
+                  <NeonButton onClick={() => navigate('/')}>
                     Connect GitHub Repository
                   </NeonButton>
                 )}

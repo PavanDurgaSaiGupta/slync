@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Octokit } from 'octokit';
@@ -87,8 +88,23 @@ export const useAuthStore = create<AuthState>()(
           
           // Verify token validity by making a test API call
           octokit.rest.users.getAuthenticated()
-            .then(() => {
+            .then((response) => {
               console.log('GitHub token verified successfully');
+              
+              // Get the user info from GitHub
+              const githubUser = response.data;
+              
+              // Update user info if it doesn't exist
+              if (!get().user) {
+                set({
+                  user: {
+                    username: githubUser.login,
+                    email: githubUser.email || 'github-user@example.com',
+                    avatarUrl: githubUser.avatar_url
+                  }
+                });
+              }
+              
               toast.success('GitHub token verified successfully');
             })
             .catch((err) => {
@@ -151,14 +167,20 @@ export const useAuthStore = create<AuthState>()(
             console.log(`Successfully connected to repository: ${owner}/${name}`);
             
             // Set the repo info
+            const repoData = {
+              owner,
+              name,
+              url: repoUrl
+            };
+            
+            // Update state with repo info
             set({ 
-              repo: {
-                owner,
-                name,
-                url: repoUrl
-              },
+              repo: repoData,
               isLoading: false
             });
+            
+            // Save to persistent storage
+            console.log('Repository data set to state:', repoData);
             
             console.log('Starting initialization of repository structure...');
             
@@ -305,6 +327,9 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Not connected to a repository');
           }
           
+          console.log(`Saving to repo: ${path}`);
+          console.log(`Repository info: ${repo.owner}/${repo.name}`);
+          
           let sha: string | undefined;
           
           // Check if the file already exists to get its SHA
@@ -321,6 +346,7 @@ export const useAuthStore = create<AuthState>()(
             }
           } catch (e) {
             // File doesn't exist, which is fine
+            console.log(`Creating new file at ${path}`);
           }
           
           // Create or update the file
@@ -332,6 +358,8 @@ export const useAuthStore = create<AuthState>()(
             content: safelyEncodeToBase64(content),
             sha, // Include SHA if updating an existing file
           });
+          
+          console.log(`Successfully saved to ${path}`);
           
           set({ 
             isLoading: false,
@@ -362,6 +390,9 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Not connected to a repository');
           }
           
+          console.log(`Getting file content: ${path}`);
+          console.log(`Repository info: ${repo.owner}/${repo.name}`);
+          
           try {
             const { data } = await octokit.rest.repos.getContent({
               owner: repo.owner,
@@ -385,6 +416,7 @@ export const useAuthStore = create<AuthState>()(
             }
           } catch (e) {
             if (e instanceof Error && e.message.includes('Not Found')) {
+              console.log(`File not found: ${path}`);
               return null; // File doesn't exist
             }
             throw e;
@@ -413,6 +445,9 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Not connected to a repository');
           }
           
+          console.log(`Getting directory contents: ${path}`);
+          console.log(`Repository info: ${repo.owner}/${repo.name}`);
+          
           try {
             const { data } = await octokit.rest.repos.getContent({
               owner: repo.owner,
@@ -430,6 +465,7 @@ export const useAuthStore = create<AuthState>()(
             return data;
           } catch (e) {
             if (e instanceof Error && e.message.includes('Not Found')) {
+              console.log(`Directory not found: ${path}, creating it...`);
               // Directory doesn't exist, create it and return empty array
               await get().createFolder(path);
               return []; 
@@ -500,7 +536,14 @@ const setupAutoSync = () => {
 
 // Initialize auto-sync if repository is already connected
 const initStore = () => {
-  const { repo, token } = useAuthStore.getState();
+  const { repo, token, octokit } = useAuthStore.getState();
+  
+  // If we have a repo and token but no octokit, recreate it
+  if (repo && token && !octokit) {
+    console.log('Recreating Octokit instance from saved token');
+    const newOctokit = new Octokit({ auth: token });
+    useAuthStore.setState({ octokit: newOctokit });
+  }
   
   if (repo && token) {
     console.log('Initializing auto-sync for existing repository connection...');

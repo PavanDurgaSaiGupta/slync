@@ -20,14 +20,35 @@ const Index: React.FC = () => {
   const [isTyping, setIsTyping] = useState(true);
   const { theme, setTheme } = useTheme();
   
-  const { user, token, repo, connectRepo, logout, error, isLoading } = useAuthStore();
+  const { user, token, repo, octokit, connectRepo, logout, error, isLoading } = useAuthStore();
   
+  // Check if user is authenticated
   useEffect(() => {
-    if (!user && !token) {
+    // If no user is logged in, redirect to authentication
+    if (!user) {
       navigate('/authentication');
+      return;
     }
-  }, [user, token, navigate]);
+    
+    // If user is logged in but no token is provided, redirect to authentication with proper message
+    if (user && !token) {
+      toast.info('Please authenticate with GitHub to connect to a repository');
+      navigate('/authentication');
+      return;
+    }
+    
+    // If token exists but no octokit instance, recreate it
+    if (token && !octokit) {
+      console.log('Recreating Octokit instance on index page');
+      useAuthStore.getState().setToken(token);
+    }
+    
+    console.log("Index component - repo status:", repo ? "Connected" : "Not connected");
+    console.log("Index component - token status:", token ? "Available" : "Not available");
+    console.log("Index component - octokit status:", octokit ? "Available" : "Not available");
+  }, [user, token, octokit, navigate]);
   
+  // Typing effect for the terminal
   useEffect(() => {
     if (!user) return;
     
@@ -60,14 +81,6 @@ const Index: React.FC = () => {
     }
   }, [error]);
 
-  useEffect(() => {
-    // Check if user is logged in but no token is provided
-    if (user && !token) {
-      toast.info('Please authenticate with GitHub to connect to a repository');
-      navigate('/authentication');
-    }
-  }, [user, token, navigate]);
-
   const handleConnectRepo = async () => {
     if (!token) {
       toast.error("Please authenticate with GitHub first");
@@ -88,6 +101,9 @@ const Index: React.FC = () => {
     try {
       toast.loading("Connecting to repository...");
       await connectRepo(repoUrl);
+      
+      // Show success toast even if we return early
+      toast.success("Successfully connected to repository!");
     } catch (e) {
       console.error("Error connecting to repository:", e);
       toast.error(e instanceof Error ? e.message : "Failed to connect to repository");
@@ -116,6 +132,11 @@ const Index: React.FC = () => {
       transition: { duration: 0.5 }
     }
   };
+
+  // If user is not authenticated, don't render the main content
+  if (!user || !token) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-matrix-background p-4">
@@ -214,44 +235,28 @@ const Index: React.FC = () => {
                     </motion.div>
                   ) : (
                     <div className="space-y-4">
-                      {!token ? (
-                        <div>
-                          <p className="text-matrix-primary/80 mb-4">
-                            You need to authenticate with GitHub before connecting to a repository.
-                          </p>
-                          <NeonButton 
-                            onClick={() => navigate('/authentication')}
-                            className="w-full"
-                          >
-                            Authenticate with GitHub
-                          </NeonButton>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-matrix-primary/80 mb-4">
-                            Paste your GitHub repository URL to connect and sync your data:
-                          </p>
-                          
-                          <NeonInput
-                            type="text"
-                            placeholder="https://github.com/username/repo"
-                            value={repoUrl}
-                            onChange={(e) => setRepoUrl(e.target.value)}
-                          />
-                          
-                          <NeonButton 
-                            onClick={handleConnectRepo} 
-                            className="w-full" 
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Connecting...' : 'Connect Repository'}
-                          </NeonButton>
-                          
-                          <p className="text-matrix-primary/60 text-sm mt-2">
-                            Don't have a repository? <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="underline">Create one</a> or use an existing one.
-                          </p>
-                        </>
-                      )}
+                      <p className="text-matrix-primary/80 mb-4">
+                        Paste your GitHub repository URL to connect and sync your data:
+                      </p>
+                      
+                      <NeonInput
+                        type="text"
+                        placeholder="https://github.com/username/repo"
+                        value={repoUrl}
+                        onChange={(e) => setRepoUrl(e.target.value)}
+                      />
+                      
+                      <NeonButton 
+                        onClick={handleConnectRepo} 
+                        className="w-full" 
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Connecting...' : 'Connect Repository'}
+                      </NeonButton>
+                      
+                      <p className="text-matrix-primary/60 text-sm mt-2">
+                        Don't have a repository? <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="underline">Create one</a> or use an existing one.
+                      </p>
                     </div>
                   )}
                 </motion.div>
