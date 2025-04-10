@@ -22,6 +22,7 @@ const Index: React.FC = () => {
   
   const { user, token, repo, connectRepo, logout, error, isLoading } = useAuthStore();
   
+  // Check if user is authenticated
   useEffect(() => {
     // If no user is logged in, redirect to authentication
     if (!user) {
@@ -37,6 +38,7 @@ const Index: React.FC = () => {
     }
   }, [user, token, navigate]);
   
+  // Typing effect for the terminal
   useEffect(() => {
     if (!user) return;
     
@@ -89,6 +91,9 @@ const Index: React.FC = () => {
     try {
       toast.loading("Connecting to repository...");
       await connectRepo(repoUrl);
+      
+      // Show success toast even if we return early
+      toast.success("Successfully connected to repository!");
     } catch (e) {
       console.error("Error connecting to repository:", e);
       toast.error(e instanceof Error ? e.message : "Failed to connect to repository");

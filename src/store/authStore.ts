@@ -85,7 +85,17 @@ export const useAuthStore = create<AuthState>()(
           const octokit = new Octokit({ auth: token });
           set({ token, octokit, error: null });
           
-          console.log('GitHub token set successfully');
+          // Verify token validity by making a test API call
+          octokit.rest.users.getAuthenticated()
+            .then(() => {
+              console.log('GitHub token verified successfully');
+              toast.success('GitHub token verified successfully');
+            })
+            .catch((err) => {
+              console.error('Error verifying GitHub token:', err);
+              set({ token: null, octokit: null, error: 'Invalid GitHub token. Please check and try again.' });
+              toast.error('Invalid GitHub token. Please check and try again.');
+            });
         } catch (error) {
           console.error('Error setting GitHub token:', error);
           set({ error: 'Failed to set GitHub token' });
@@ -129,12 +139,16 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Invalid repository URL format. Expected: https://github.com/username/repo');
           }
           
+          console.log(`Attempting to connect to repository: ${owner}/${name}`);
+          
           // Verify the repo exists and user has access
           try {
             await octokit.rest.repos.get({
               owner,
               repo: name,
             });
+            
+            console.log(`Successfully connected to repository: ${owner}/${name}`);
             
             // Set the repo info
             set({ 
@@ -146,15 +160,65 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false
             });
             
-            // Initialize repository structure
-            await get().createFolder('bookmarks');
-            await get().createFolder('todos');
-            await get().createFolder('notes');
-            await get().createFolder('config');
-            await get().createFolder('collections');
-            await get().createFolder('attachments');
+            console.log('Starting initialization of repository structure...');
             
-            toast.success('Repository connected successfully!');
+            // Initialize repository structure with all required folders
+            const folders = [
+              'bookmarks',
+              'todos',
+              'notes',
+              'config',
+              'collections',
+              'attachments',
+              'bookmarks/default',
+              'notes/default',
+              'todos/default'
+            ];
+            
+            // Create all folders sequentially
+            for (const folder of folders) {
+              try {
+                await get().createFolder(folder);
+                console.log(`Created folder: ${folder}`);
+              } catch (folderError) {
+                console.warn(`Error creating folder ${folder}:`, folderError);
+                // Continue with other folders even if one fails
+              }
+            }
+            
+            // Create README files for main sections
+            try {
+              await get().saveToRepo(
+                'README.md',
+                '# SLYNC: Personal Productivity Suite\n\nThis repository contains your synced productivity data.\n\n- `/bookmarks` - Your saved web links\n- `/todos` - Task lists and to-dos\n- `/notes` - Markdown notes and documentation\n- `/attachments` - Files attached to notes, todos, or bookmarks\n',
+                '[Slync] Initialize repository structure'
+              );
+              
+              await get().saveToRepo(
+                'bookmarks/README.md',
+                '# SLYNC Bookmarks\n\nThis directory contains your saved bookmarks organized in collections.\n',
+                '[Slync] Initialize bookmarks structure'
+              );
+              
+              await get().saveToRepo(
+                'notes/README.md',
+                '# SLYNC Notes\n\nThis directory contains your notes in Markdown format.\n',
+                '[Slync] Initialize notes structure'
+              );
+              
+              await get().saveToRepo(
+                'todos/README.md',
+                '# SLYNC Todo Lists\n\nThis directory contains your todo lists and tasks.\n',
+                '[Slync] Initialize todos structure'
+              );
+              
+              console.log('Created README files for main sections');
+            } catch (readmeError) {
+              console.warn('Error creating README files:', readmeError);
+              // Continue even if README creation fails
+            }
+            
+            toast.success('Repository connected and initialized successfully!');
             
             // Setup auto-sync timer
             setupAutoSync();
@@ -189,6 +253,8 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Not connected to a repository');
           }
           
+          console.log(`Attempting to create folder: ${folderPath}`);
+          
           try {
             // Try to get the content first to check if it exists
             await octokit.rest.repos.getContent({
@@ -211,11 +277,9 @@ export const useAuthStore = create<AuthState>()(
                   content: safelyEncodeToBase64(' '),
                 });
                 console.log(`Created folder '${folderPath}'`);
-                toast.success(`Created folder '${folderPath}'`);
                 set({ pendingChanges: true });
               } catch (createErr) {
                 console.error(`Error creating folder '${folderPath}':`, createErr);
-                toast.error(`Failed to create folder '${folderPath}'`);
                 throw new Error(`Failed to create folder '${folderPath}'`);
               }
             } else {
@@ -224,10 +288,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (e) {
           console.error('Error in createFolder:', e);
-          set({ 
-            error: e instanceof Error ? e.message : `Failed to create folder '${folderPath}'`,
-            isLoading: false
-          });
+          throw e;
         }
       },
       
@@ -431,6 +492,7 @@ const setupAutoSync = () => {
     const { syncChanges, pendingChanges, repo, token } = useAuthStore.getState();
     
     if (pendingChanges && repo && token) {
+      console.log('Auto-syncing changes to GitHub repository...');
       syncChanges();
     }
   }, syncInterval);
@@ -441,6 +503,7 @@ const initStore = () => {
   const { repo, token } = useAuthStore.getState();
   
   if (repo && token) {
+    console.log('Initializing auto-sync for existing repository connection...');
     setupAutoSync();
   }
 };

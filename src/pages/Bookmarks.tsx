@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +53,7 @@ const Bookmarks = () => {
     }
     
     loadBookmarks();
-  }, [repo, user, navigate]);
+  }, [repo, user, navigate, currentCollection]);
   
   const loadBookmarks = async () => {
     setIsLoading(true);
@@ -66,7 +67,10 @@ const Bookmarks = () => {
       }
       
       try {
+        console.log('Loading bookmarks...');
         const baseFiles = await getDirectoryContents('bookmarks');
+        console.log('Got bookmarks directory contents:', baseFiles);
+        
         const collectionList: Collection[] = [];
         
         for (const file of baseFiles) {
@@ -87,11 +91,15 @@ const Bookmarks = () => {
         setCollections(collectionList);
         
         const path = currentCollection ? `bookmarks/${currentCollection}` : 'bookmarks';
+        console.log(`Loading bookmarks from path: ${path}`);
         const files = await getDirectoryContents(path);
+        console.log(`Got files for path ${path}:`, files);
+        
         const loadedBookmarks: Bookmark[] = [];
         
         for (const file of files) {
           if (file.type === 'file' && file.name.endsWith('.md')) {
+            console.log(`Loading bookmark file: ${file.name}`);
             const result = await getFileContent(`${path}/${file.name}`);
             if (result) {
               const { content, sha } = result;
@@ -117,10 +125,12 @@ const Bookmarks = () => {
           }
         }
         
+        console.log('Loaded bookmarks:', loadedBookmarks);
         setBookmarks(loadedBookmarks);
       } catch (err: any) {
         console.error('Error loading bookmarks directory:', err);
         if (err.status === 404) {
+          console.log('Bookmarks directory not found, creating it...');
           await createBookmarksStructure();
         } else {
           setError('Failed to load bookmarks. Please check your GitHub connection.');
@@ -147,8 +157,15 @@ const Bookmarks = () => {
         'Initialize bookmarks structure'
       );
       
+      // Create default collection
+      await saveToRepo(
+        'bookmarks/default/.gitkeep',
+        '',
+        'Initialize default bookmarks collection'
+      );
+      
       toast.success('Bookmarks directory created!');
-      setCollections([]);
+      setCollections([{ name: 'default', count: 0 }]);
       setBookmarks([]);
     } catch (err) {
       console.error('Error creating bookmarks structure:', err);
@@ -171,11 +188,15 @@ const Bookmarks = () => {
       }
       
       const tagList = tags.split(',').map(tag => tag.trim()).filter(Boolean);
-      const collection = selectedCollection || currentCollection;
-      const basePath = collection ? `bookmarks/${collection}` : 'bookmarks';
+      const collection = selectedCollection || currentCollection || 'default';
+      const basePath = `bookmarks/${collection}`;
       const fileName = `${new Date().toISOString().split('T')[0]}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
       
+      // Create content in markdown format
       const content = `---\ntitle: "${title}"\nurl: ${url}\ntags: [${tagList.join(', ')}]\ncreated_at: ${new Date().toISOString()}\n---\n${notes}`;
+      
+      console.log(`Saving bookmark to: ${basePath}/${fileName}`);
+      console.log('Content:', content);
       
       await saveToRepo(
         `${basePath}/${fileName}`,
@@ -296,19 +317,11 @@ const Bookmarks = () => {
   const selectCollection = (name: string) => {
     setCurrentCollection(name);
     setBookmarks([]);
-    
-    setTimeout(() => {
-      loadBookmarks();
-    }, 100);
   };
   
   const clearCollection = () => {
     setCurrentCollection('');
     setBookmarks([]);
-    
-    setTimeout(() => {
-      loadBookmarks();
-    }, 100);
   };
   
   const filteredBookmarks = searchTerm 
