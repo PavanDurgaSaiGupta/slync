@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Octokit } from 'octokit';
@@ -76,8 +75,22 @@ export const useAuthStore = create<AuthState>()(
       
       setUser: (user) => set({ user }),
       setToken: (token) => {
-        const octokit = token ? new Octokit({ auth: token }) : null;
-        set({ token, octokit });
+        try {
+          // Validate token format (basic check)
+          if (!token || token.trim() === '') {
+            throw new Error('Invalid token format');
+          }
+          
+          // Create Octokit instance with the token
+          const octokit = new Octokit({ auth: token });
+          set({ token, octokit, error: null });
+          
+          console.log('GitHub token set successfully');
+        } catch (error) {
+          console.error('Error setting GitHub token:', error);
+          set({ error: 'Failed to set GitHub token' });
+          toast.error('Failed to set GitHub token');
+        }
       },
       setRepo: (repo) => set({ repo }),
       setIsLoading: (isLoading) => set({ isLoading }),
@@ -100,10 +113,10 @@ export const useAuthStore = create<AuthState>()(
       connectRepo: async (repoUrl: string) => {
         try {
           set({ isLoading: true, error: null });
-          const { octokit } = get();
+          const { octokit, token } = get();
           
-          if (!octokit) {
-            throw new Error('Not authenticated with GitHub');
+          if (!token || !octokit) {
+            throw new Error('Not authenticated with GitHub. Please provide a valid token first.');
           }
           
           // Parse repo URL to extract owner and name
@@ -112,7 +125,11 @@ export const useAuthStore = create<AuthState>()(
           const owner = urlParts[urlParts.length - 2];
           const name = urlParts[urlParts.length - 1].replace('.git', '');
           
-          // Verify the repo exists
+          if (!owner || !name) {
+            throw new Error('Invalid repository URL format. Expected: https://github.com/username/repo');
+          }
+          
+          // Verify the repo exists and user has access
           try {
             await octokit.rest.repos.get({
               owner,
@@ -145,10 +162,10 @@ export const useAuthStore = create<AuthState>()(
           } catch (e) {
             console.error('Error connecting to repository:', e);
             set({ 
-              error: 'Repository not found or access denied',
+              error: 'Repository not found or access denied. Check your token permissions.',
               isLoading: false
             });
-            toast.error('Repository not found or access denied');
+            toast.error('Repository not found or access denied. Check your token permissions.');
           }
         } catch (e) {
           console.error('Error in connectRepo:', e);
@@ -162,7 +179,11 @@ export const useAuthStore = create<AuthState>()(
       
       createFolder: async (folderPath: string) => {
         try {
-          const { octokit, repo } = get();
+          const { octokit, repo, token } = get();
+          
+          if (!token) {
+            throw new Error('Not authenticated with GitHub. Please provide a valid token.');
+          }
           
           if (!octokit || !repo) {
             throw new Error('Not connected to a repository');
@@ -213,7 +234,11 @@ export const useAuthStore = create<AuthState>()(
       saveToRepo: async (path: string, content: string, message: string) => {
         try {
           set({ isLoading: true, error: null });
-          const { octokit, repo } = get();
+          const { octokit, repo, token } = get();
+          
+          if (!token) {
+            throw new Error('Not authenticated with GitHub. Please provide a valid token.');
+          }
           
           if (!octokit || !repo) {
             throw new Error('Not connected to a repository');
@@ -266,7 +291,11 @@ export const useAuthStore = create<AuthState>()(
       getFileContent: async (path: string) => {
         try {
           set({ isLoading: true, error: null });
-          const { octokit, repo } = get();
+          const { octokit, repo, token } = get();
+          
+          if (!token) {
+            throw new Error('Not authenticated with GitHub. Please provide a valid token.');
+          }
           
           if (!octokit || !repo) {
             throw new Error('Not connected to a repository');
@@ -313,7 +342,11 @@ export const useAuthStore = create<AuthState>()(
       getDirectoryContents: async (path: string) => {
         try {
           set({ isLoading: true, error: null });
-          const { octokit, repo } = get();
+          const { octokit, repo, token } = get();
+          
+          if (!token) {
+            throw new Error('Not authenticated with GitHub. Please provide a valid token.');
+          }
           
           if (!octokit || !repo) {
             throw new Error('Not connected to a repository');
@@ -354,9 +387,9 @@ export const useAuthStore = create<AuthState>()(
       },
       
       syncChanges: async () => {
-        const { pendingChanges, repo, octokit } = get();
+        const { pendingChanges, repo, octokit, token } = get();
         
-        if (!pendingChanges || !repo || !octokit) {
+        if (!pendingChanges || !repo || !octokit || !token) {
           return;
         }
         
@@ -395,9 +428,9 @@ const setupAutoSync = () => {
   const syncInterval = 60 * 1000; // 1 minute
   
   setInterval(() => {
-    const { syncChanges, pendingChanges, repo } = useAuthStore.getState();
+    const { syncChanges, pendingChanges, repo, token } = useAuthStore.getState();
     
-    if (pendingChanges && repo) {
+    if (pendingChanges && repo && token) {
       syncChanges();
     }
   }, syncInterval);
@@ -405,9 +438,9 @@ const setupAutoSync = () => {
 
 // Initialize auto-sync if repository is already connected
 const initStore = () => {
-  const { repo } = useAuthStore.getState();
+  const { repo, token } = useAuthStore.getState();
   
-  if (repo) {
+  if (repo && token) {
     setupAutoSync();
   }
 };

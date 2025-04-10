@@ -39,14 +39,22 @@ const Authentication = () => {
   const [authMethod, setAuthMethod] = useState<'token' | 'repo' | 'local'>('local');
   const [isLoading, setIsLoading] = useState(false);
   const [userRepos, setUserRepos] = useState<{name: string, full_name: string}[]>([]);
+  const [authError, setAuthError] = useState<string | null>(null);
   
-  const { setToken: setAuthToken, setUser, user, connectRepo } = useAuthStore();
+  const { setToken: setAuthToken, setUser, user, token: storedToken, connectRepo } = useAuthStore();
   const navigate = useNavigate();
   const { theme } = useTheme();
 
   useEffect(() => {
-    if (user && token) {
+    // If user is fully authenticated with both user info and token, redirect to home
+    if (user && storedToken) {
       navigate('/');
+      return;
+    }
+    
+    // If user info exists but no token, direct to token input
+    if (user && !storedToken) {
+      setAuthMethod('token');
     }
     
     // Load any saved local users from localStorage
@@ -58,15 +66,17 @@ const Authentication = () => {
         console.error('Error parsing saved users:', e);
       }
     }
-  }, [user, token, navigate]);
+  }, [user, storedToken, navigate]);
 
   const handleAuthWithToken = async () => {
     if (!token.trim()) {
       toast.error('Please enter a GitHub token');
+      setAuthError('Please enter a GitHub token');
       return;
     }
 
     setIsLoading(true);
+    setAuthError(null);
     
     try {
       // Create Octokit instance with the token
@@ -76,12 +86,16 @@ const Authentication = () => {
       const { data } = await octokit.rest.users.getAuthenticated();
       
       if (data) {
-        // Set user and token in auth store
-        setUser({
-          username: data.login,
-          email: data.email || '',
-          avatarUrl: data.avatar_url
-        });
+        // If we don't have user data yet, set it now
+        if (!user) {
+          setUser({
+            username: data.login,
+            email: data.email || '',
+            avatarUrl: data.avatar_url
+          });
+        }
+        
+        // Set token in auth store
         setAuthToken(token);
         
         // Fetch user repositories
@@ -100,13 +114,21 @@ const Authentication = () => {
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      toast.error('Authentication failed. Please check your token and try again.');
+      const errorMessage = 'Authentication failed. Please check your token and try again.';
+      toast.error(errorMessage);
+      setAuthError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleAuthWithRepo = async () => {
+    if (!storedToken) {
+      toast.error('Please authenticate with GitHub token first');
+      setAuthMethod('token');
+      return;
+    }
+    
     if (!repoUrl.trim()) {
       toast.error('Please enter a GitHub repository URL');
       return;
@@ -121,10 +143,11 @@ const Authentication = () => {
     
     try {
       await connectRepo(repoUrl);
+      toast.success('Repository connected successfully!');
       navigate('/');
     } catch (error) {
       console.error('Repository connection error:', error);
-      toast.error('Failed to connect to repository. Make sure you have authenticated with a token first.');
+      toast.error('Failed to connect to repository. Make sure you have the correct permissions.');
     } finally {
       setIsLoading(false);
     }
@@ -353,6 +376,12 @@ const Authentication = () => {
             <p className="text-matrix-primary/60 text-sm mt-2">
               Token requires <code className="bg-black/40 px-1 rounded">repo</code> scope
             </p>
+            
+            {authError && (
+              <p className="text-red-400 text-sm mt-2">
+                {authError}
+              </p>
+            )}
           </div>
           
           <NeonButton 
@@ -515,3 +544,4 @@ const Authentication = () => {
 };
 
 export default Authentication;
+
