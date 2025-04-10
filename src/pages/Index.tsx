@@ -95,7 +95,7 @@ const Index = () => {
             {user ? (
               <>
                 <span className="text-matrix-primary/70">
-                  {user.name || user.login}
+                  {user.username}
                 </span>
                 <button 
                   onClick={logout}

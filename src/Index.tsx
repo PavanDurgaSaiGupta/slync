@@ -31,6 +31,7 @@ const Index: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     
+    // Updated to use username property instead of name/login
     const text = `Initializing... \nConnection established. \nWelcome back, ${user.username}. \nSystem ready.`;
     let index = 0;
     let timer: NodeJS.Timeout;
