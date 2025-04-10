@@ -36,7 +36,7 @@ const Authentication = () => {
   const [localUsers, setLocalUsers] = useState<{email: string, username: string, password: string}[]>([]);
   
   // UI state
-  const [authMethod, setAuthMethod] = useState<'token' | 'repo' | 'local'>('token');
+  const [authMethod, setAuthMethod] = useState<'token' | 'repo' | 'local'>('local');
   const [isLoading, setIsLoading] = useState(false);
   const [userRepos, setUserRepos] = useState<{name: string, full_name: string}[]>([]);
   
@@ -45,7 +45,7 @@ const Authentication = () => {
   const { theme } = useTheme();
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       navigate('/');
     }
     
@@ -58,7 +58,7 @@ const Authentication = () => {
         console.error('Error parsing saved users:', e);
       }
     }
-  }, [user, navigate]);
+  }, [user, token, navigate]);
 
   const handleAuthWithToken = async () => {
     if (!token.trim()) {
@@ -188,6 +188,7 @@ const Authentication = () => {
     
     // Direct to token input
     setAuthMethod('token');
+    toast.info('Please enter your GitHub token to continue');
   };
   
   const handleRegister = () => {
@@ -313,40 +314,9 @@ const Authentication = () => {
               {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
             </button>
           </div>
-          
-          <div className="flex justify-between">
-            <NeonButton 
-              onClick={() => setAuthMethod('token')}
-              className="flex-1"
-              secondary
-            >
-              Continue with GitHub
-            </NeonButton>
-          </div>
         </div>
       );
     } else if (authMethod === 'token') {
-      if (user && token) {
-        return (
-          <div className="space-y-6">
-            <div className="matrix-glass p-4 rounded-md">
-              <p className="text-matrix-primary/70 mb-2">Authenticated as:</p>
-              <p className="neon-text font-mono">{user.username}</p>
-              <p className="text-matrix-primary/70 text-sm">{user.email}</p>
-            </div>
-            
-            <div className="flex justify-between">
-              <NeonButton 
-                onClick={() => setAuthMethod('repo')}
-                className="flex-1"
-              >
-                Connect Repository
-              </NeonButton>
-            </div>
-          </div>
-        );
-      }
-      
       return (
         <div className="space-y-6">
           <div className="flex justify-center mb-6">
@@ -358,6 +328,14 @@ const Authentication = () => {
           <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
             GitHub Authentication
           </h2>
+          
+          {user && (
+            <div className="matrix-glass p-4 rounded-md mb-4">
+              <p className="text-matrix-primary/70 mb-2">Logged in as:</p>
+              <p className="neon-text font-mono">{user.username}</p>
+              <p className="text-matrix-primary/70 text-sm">{user.email}</p>
+            </div>
+          )}
           
           <div>
             <label className="block text-matrix-primary/80 mb-2 flex items-center">
@@ -392,8 +370,28 @@ const Authentication = () => {
               className="flex-1"
               secondary
             >
-              Use Local Account
+              Back to Login
             </NeonButton>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-matrix-primary/20">
+            <h3 className="text-matrix-primary/90 font-bold mb-2">How to get a GitHub token:</h3>
+            <ol className="list-decimal list-inside text-matrix-primary/70 text-sm space-y-1">
+              <li>Go to GitHub Settings → Developer settings → <a 
+                href="https://github.com/settings/tokens" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-matrix-primary underline"
+              >Personal access tokens</a></li>
+              <li>Click "Generate new token (classic)"</li>
+              <li>Add a note like "SLYNC App"</li>
+              <li>Set an expiration date (or "No expiration" for convenience)</li>
+              <li>Select the <code className="bg-black/40 px-1 rounded">repo</code> scope (this is required)</li>
+              <li>Click "Generate token" and copy it</li>
+            </ol>
+            <p className="text-red-400 mt-4 text-sm">
+              <strong>Important:</strong> Save your token securely! GitHub will only show it once.
+            </p>
           </div>
         </div>
       );
@@ -410,6 +408,12 @@ const Authentication = () => {
           <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
             Connect Repository
           </h2>
+          
+          <div className="matrix-glass p-4 rounded-md mb-4">
+            <p className="text-matrix-primary/70 mb-2">Authenticated as:</p>
+            <p className="neon-text font-mono">{user?.username}</p>
+            <p className="text-matrix-primary/70 text-sm">{user?.email}</p>
+          </div>
           
           <div>
             <label className="block text-matrix-primary/80 mb-2 flex items-center">
@@ -492,37 +496,6 @@ const Authentication = () => {
           
           <div className="matrix-card">
             {renderAuthForm()}
-            
-            {authMethod === 'token' && (
-              <div className="mt-6 pt-4 border-t border-matrix-primary/20">
-                <h3 className="text-matrix-primary/90 font-bold mb-2">GitHub OAuth App Registration Info:</h3>
-                <p className="text-matrix-primary/80 mb-2">To register your own GitHub OAuth app:</p>
-                <ul className="list-disc list-inside text-matrix-primary/70 text-sm space-y-1">
-                  <li>Homepage URL: <code className="bg-black/40 px-1 rounded">https://yourdomain.com</code></li>
-                  <li>Authorization callback URL: <code className="bg-black/40 px-1 rounded">https://yourdomain.com/auth/callback</code></li>
-                  <li>Enable Device Flow: ✓</li>
-                  <li>Description: "SLYNC - Self-hosted productivity suite with GitHub sync"</li>
-                </ul>
-
-                <h3 className="text-matrix-primary/90 font-bold mt-4 mb-2">How to get a token:</h3>
-                <ol className="list-decimal list-inside text-matrix-primary/70 text-sm space-y-1">
-                  <li>Go to GitHub Settings → Developer settings → <a 
-                    href="https://github.com/settings/tokens" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-matrix-primary underline"
-                  >Personal access tokens</a></li>
-                  <li>Click "Generate new token (classic)"</li>
-                  <li>Add a note like "SLYNC App"</li>
-                  <li>Set an expiration date (or "No expiration" for convenience)</li>
-                  <li>Select the <code className="bg-black/40 px-1 rounded">repo</code> scope (this is required)</li>
-                  <li>Click "Generate token" and copy it</li>
-                </ol>
-                <p className="text-red-400 mt-4 text-sm">
-                  <strong>Important:</strong> Save your token securely! GitHub will only show it once.
-                </p>
-              </div>
-            )}
             
             <div className="mt-6">
               <NeonButton 

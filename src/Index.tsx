@@ -31,7 +31,7 @@ const Index: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     
-    // Updated to use username property instead of name/login
+    // Use username property
     const text = `Initializing... \nConnection established. \nWelcome back, ${user.username}. \nSystem ready.`;
     let index = 0;
     let timer: NodeJS.Timeout;
@@ -60,7 +60,21 @@ const Index: React.FC = () => {
     }
   }, [error]);
 
+  useEffect(() => {
+    // Check if user is logged in but no token is provided
+    if (user && !token) {
+      toast.info('Please authenticate with GitHub to connect to a repository');
+      navigate('/authentication');
+    }
+  }, [user, token, navigate]);
+
   const handleConnectRepo = async () => {
+    if (!token) {
+      toast.error("Please authenticate with GitHub first");
+      navigate('/authentication');
+      return;
+    }
+    
     if (!repoUrl) {
       toast.error("Please enter a repository URL");
       return;
@@ -200,28 +214,44 @@ const Index: React.FC = () => {
                     </motion.div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-matrix-primary/80 mb-4">
-                        Paste your GitHub repository URL to connect and sync your data:
-                      </p>
-                      
-                      <NeonInput
-                        type="text"
-                        placeholder="https://github.com/username/repo"
-                        value={repoUrl}
-                        onChange={(e) => setRepoUrl(e.target.value)}
-                      />
-                      
-                      <NeonButton 
-                        onClick={handleConnectRepo} 
-                        className="w-full" 
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Connecting...' : 'Connect Repository'}
-                      </NeonButton>
-                      
-                      <p className="text-matrix-primary/60 text-sm mt-2">
-                        Don't have a repository? <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="underline">Create one</a> or use an existing one.
-                      </p>
+                      {!token ? (
+                        <div>
+                          <p className="text-matrix-primary/80 mb-4">
+                            You need to authenticate with GitHub before connecting to a repository.
+                          </p>
+                          <NeonButton 
+                            onClick={() => navigate('/authentication')}
+                            className="w-full"
+                          >
+                            Authenticate with GitHub
+                          </NeonButton>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-matrix-primary/80 mb-4">
+                            Paste your GitHub repository URL to connect and sync your data:
+                          </p>
+                          
+                          <NeonInput
+                            type="text"
+                            placeholder="https://github.com/username/repo"
+                            value={repoUrl}
+                            onChange={(e) => setRepoUrl(e.target.value)}
+                          />
+                          
+                          <NeonButton 
+                            onClick={handleConnectRepo} 
+                            className="w-full" 
+                            disabled={isLoading}
+                          >
+                            {isLoading ? 'Connecting...' : 'Connect Repository'}
+                          </NeonButton>
+                          
+                          <p className="text-matrix-primary/60 text-sm mt-2">
+                            Don't have a repository? <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="underline">Create one</a> or use an existing one.
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
                 </motion.div>
