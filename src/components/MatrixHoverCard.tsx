@@ -19,7 +19,9 @@ const MatrixHoverCard: React.FC<MatrixHoverCardProps> = ({
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        {trigger}
+        <div className="matrix-page-effect">
+          {trigger}
+        </div>
       </HoverCardTrigger>
       <HoverCardContent 
         side={side} 

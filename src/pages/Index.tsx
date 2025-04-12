@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -22,22 +21,18 @@ const Index: React.FC = () => {
   
   const { user, token, repo, octokit, connectRepo, logout, error, isLoading } = useAuthStore();
   
-  // Check if user is authenticated
   useEffect(() => {
-    // If no user is logged in, redirect to authentication
     if (!user) {
       navigate('/authentication');
       return;
     }
     
-    // If user is logged in but no token is provided, redirect to authentication with proper message
     if (user && !token) {
       toast.info('Please authenticate with GitHub to connect to a repository');
       navigate('/authentication');
       return;
     }
     
-    // If token exists but no octokit instance, recreate it
     if (token && !octokit) {
       console.log('Recreating Octokit instance on index page');
       useAuthStore.getState().setToken(token);
@@ -48,11 +43,9 @@ const Index: React.FC = () => {
     console.log("Index component - octokit status:", octokit ? "Available" : "Not available");
   }, [user, token, octokit, navigate, repo]);
   
-  // Typing effect for the terminal
   useEffect(() => {
     if (!user) return;
     
-    // Use username property
     const text = `Initializing... \nConnection established. \nWelcome back, ${user.username}. \nSystem ready.`;
     let index = 0;
     let timer: NodeJS.Timeout;
@@ -74,7 +67,6 @@ const Index: React.FC = () => {
     return () => clearTimeout(timer);
   }, [user]);
 
-  // Effect to show error toast if there's an error
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -102,7 +94,6 @@ const Index: React.FC = () => {
       toast.loading("Connecting to repository...");
       await connectRepo(repoUrl);
       
-      // Check if repo was actually set after the connection attempt
       const currentRepo = useAuthStore.getState().repo;
       if (currentRepo) {
         toast.success("Successfully connected to repository!");
@@ -138,7 +129,6 @@ const Index: React.FC = () => {
     }
   };
 
-  // If user is not authenticated, don't render the main content
   if (!user || !token) {
     return null;
   }
@@ -163,6 +153,8 @@ const Index: React.FC = () => {
         </motion.button>
       )}
       
+      <div className="matrix-page-background"></div>
+      
       <AnimatePresence>
         {user && (
           <div className="container mx-auto max-w-5xl">
@@ -170,7 +162,7 @@ const Index: React.FC = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-center mb-12"
+              className="text-center mb-12 matrix-page-effect"
             >
               <div className="flex justify-center mb-4">
                 <motion.div 
@@ -207,7 +199,7 @@ const Index: React.FC = () => {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="space-y-8"
+                className="space-y-8 matrix-page-effect"
               >
                 <motion.div 
                   variants={itemVariants}
@@ -271,7 +263,7 @@ const Index: React.FC = () => {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="space-y-8"
+                className="space-y-8 matrix-page-effect"
               >
                 <motion.div 
                   variants={itemVariants}
@@ -329,7 +321,7 @@ const Index: React.FC = () => {
                 <motion.div
                   key={index}
                   variants={itemVariants}
-                  className={`matrix-card matrix-card-hover matrix-hover-effect cursor-pointer ${theme.enableCrtFlicker ? 'flicker-effect' : ''} ${!item.enabled ? 'opacity-50' : ''}`}
+                  className={`matrix-card matrix-card-hover matrix-hover-effect cursor-pointer matrix-page-effect ${theme.enableCrtFlicker ? 'flicker-effect' : ''} ${!item.enabled ? 'opacity-50' : ''}`}
                   whileHover={{ scale: item.enabled ? 1.05 : 1 }}
                   whileTap={{ scale: item.enabled ? 0.95 : 1 }}
                   onClick={() => item.enabled && handleNavigation(item.path)}

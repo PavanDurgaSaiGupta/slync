@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=VT323&display=swap');
 
 @tailwind base;
@@ -161,7 +162,7 @@
     opacity: 1;
     left: -50%;
     top: -50%;
-    animation: matrix-shine 1.5s infinite;
+    animation: matrix-shine 1.5s 1 forwards;
   }
   
   .flicker-effect {
@@ -220,7 +221,7 @@
     opacity: 1;
     left: -50%;
     top: -50%;
-    animation: matrix-shine 1.5s infinite;
+    animation: matrix-shine 1.5s 1 forwards;
   }
 
   .matrix-hover-effect {
@@ -254,6 +255,24 @@
 
   .matrix-hover-effect:hover::after {
     left: 100%;
+    animation: matrix-sweep 0.7s 1 forwards;
+  }
+  
+  /* Background page animation effect */
+  .matrix-page-background {
+    @apply fixed inset-0 w-full h-full pointer-events-none z-[-1];
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(var(--theme-primary-rgb), 0.03) 0%,
+      transparent 80%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }
+  
+  .matrix-page-effect:hover ~ .matrix-page-background {
+    opacity: 1;
+    animation: pulse-background 2s 1 forwards;
   }
 }
 
@@ -335,8 +354,29 @@
   }
 }
 
+@keyframes matrix-sweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse-background {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .neon-button:hover {
-  animation: matrix-pulse 1.5s infinite;
+  animation: matrix-pulse 1.5s 1 forwards;
 }
 
 @keyframes matrix-pulse {

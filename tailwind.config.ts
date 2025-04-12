@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -129,6 +130,15 @@ export default {
 				'matrix-shine': {
 					'0%': { transform: 'translate(-50%, -50%) rotate(45deg)' },
 					'100%': { transform: 'translate(50%, 50%) rotate(45deg)' }
+				},
+				'matrix-sweep': {
+					'0%': { left: '-100%' },
+					'100%': { left: '100%' }
+				},
+				'pulse-background': {
+					'0%': { opacity: '0' },
+					'50%': { opacity: '1' },
+					'100%': { opacity: '0' }
 				}
 			},
 			animation: {
@@ -141,7 +151,9 @@ export default {
 				'flicker': 'flicker 2s linear infinite',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 				'blink': 'blink 1s step-start infinite',
-				'matrix-shine': 'matrix-shine 1.5s infinite'
+				'matrix-shine': 'matrix-shine 1.5s infinite',
+				'matrix-sweep': 'matrix-sweep 0.7s forwards',
+				'pulse-background': 'pulse-background 2s forwards'
 			},
 			boxShadow: {
 				'glow-sm': '0 0 5px 2px rgba(0, 255, 68, 0.3)',
