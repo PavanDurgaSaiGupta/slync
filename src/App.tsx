@@ -49,6 +49,15 @@ const ProtectedRoute = ({ children, requireRepo = false }: { children: React.Rea
 
 function App() {
   const { theme } = useTheme();
+  
+  // Set up global CSS variables based on theme
+  useEffect(() => {
+    if (theme.enableCrtFlicker) {
+      document.documentElement.classList.add('enable-flicker');
+    } else {
+      document.documentElement.classList.remove('enable-flicker');
+    }
+  }, [theme.enableCrtFlicker]);
 
   return (
     <Router>
@@ -102,6 +111,7 @@ function App() {
         theme={theme?.isDark ? "dark" : "light"}
         position="top-center"
         richColors
+        closeButton
       />
     </Router>
   );

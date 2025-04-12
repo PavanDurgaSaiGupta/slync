@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type ThemeType = {
@@ -36,6 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     // Apply CSS variables based on theme
     document.documentElement.style.setProperty('--theme-primary', getThemeColor(theme.themeNumber));
+    document.documentElement.style.setProperty('--theme-secondary', getThemeSecondary(theme.themeNumber));
     
     // Apply matrix-background class with the appropriate theme color
     document.documentElement.classList.forEach(className => {
@@ -44,6 +44,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     });
     document.documentElement.classList.add(`theme-${theme.themeNumber}`);
+    
+    // Add or remove the CRT flicker effect globally
+    if (theme.enableCrtFlicker) {
+      document.documentElement.classList.add('enable-flicker');
+    } else {
+      document.documentElement.classList.remove('enable-flicker');
+    }
     
     // Save theme to localStorage
     localStorage.setItem('slync-theme', JSON.stringify(theme));
@@ -66,9 +73,21 @@ const getThemeColor = (themeNumber: number): string => {
     case 1: return '#0CFC5C'; // Matrix Green
     case 2: return '#5D80FE'; // Neo Blue
     case 3: return '#FF71C5'; // Cyber Pink
-    case 4: return '#FFA500'; // Amber Gold
+    case 4: return '#ECDB54'; // Amber Gold
     case 5: return '#9B87F5'; // Purple Neon
     default: return '#0CFC5C';
+  }
+};
+
+// Helper function to get secondary theme color
+const getThemeSecondary = (themeNumber: number): string => {
+  switch (themeNumber) {
+    case 1: return '#0D7377'; // Matrix Green complementary
+    case 2: return '#1D3057'; // Neo Blue complementary
+    case 3: return '#8C4573'; // Cyber Pink complementary
+    case 4: return '#8C7A28'; // Amber Gold complementary
+    case 5: return '#433A68'; // Purple Neon complementary
+    default: return '#0D7377';
   }
 };
 

@@ -2,14 +2,38 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Settings, ArrowLeft, Palette, Code, Zap, Lightbulb } from 'lucide-react';
+import { Settings, ArrowLeft, Palette, Code, Zap, Lightbulb, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 import NeonButton from '@/components/NeonButton';
 import GlitchText from '@/components/GlitchText';
 import MatrixRain from '@/components/MatrixRain';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import MatrixHoverCard from '@/components/MatrixHoverCard';
 import { useTheme, ThemeType } from '@/hooks/useTheme';
+
+const themeDescriptions = [
+  {
+    name: "Matrix Green",
+    description: "The iconic green on black theme from the original Matrix."
+  },
+  {
+    name: "Neo Blue",
+    description: "Cool blue tones reminiscent of the digital world."
+  },
+  {
+    name: "Cyber Pink",
+    description: "Vibrant pink for a cyberpunk aesthetic."
+  },
+  {
+    name: "Amber Gold",
+    description: "Warm amber glow reminiscent of vintage terminals."
+  },
+  {
+    name: "Purple Neon",
+    description: "Rich purple hues for a futuristic feel."
+  }
+];
 
 const Themes = () => {
   const navigate = useNavigate();
@@ -18,12 +42,14 @@ const Themes = () => {
   const [showCodeRain, setShowCodeRain] = useState(theme.showCodeRain);
   const [enableCrtFlicker, setEnableCrtFlicker] = useState(theme.enableCrtFlicker || false);
   const [speed, setSpeed] = useState<ThemeType['speed']>(theme.speed);
+  const [isDark, setIsDark] = useState(theme.isDark);
   
   const saveSettings = () => {
     setTheme({
       showCodeRain,
       enableCrtFlicker,
-      speed
+      speed,
+      isDark
     });
     
     toast.success('Theme settings saved');
@@ -91,37 +117,35 @@ const Themes = () => {
                 Select your preferred color theme for the Matrix Synapse Terminal interface:
               </p>
               
-              <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex justify-center mb-6">
                 <ThemeSwitcher currentTheme={theme.themeNumber} onChange={(themeNumber) => setTheme({ themeNumber })} />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {themeDescriptions.map((desc, index) => (
+                  <div key={index} className={`col-span-1 border-2 rounded-md p-4 ${theme.themeNumber === index + 1 ? 'border-matrix-primary shadow-glow' : 'border-matrix-primary/30'}`}>
+                    <h3 className="text-matrix-primary font-bold mb-2">{desc.name}</h3>
+                    <p className="text-matrix-primary/70 text-sm">
+                      {desc.description}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="col-span-3 md:col-span-1">
-                <div className={`border-2 rounded-md p-4 ${theme.themeNumber === 1 ? 'border-matrix-primary shadow-glow' : 'border-matrix-primary/30'}`}>
-                  <h3 className="text-matrix-primary font-bold mb-2">Matrix Classic</h3>
-                  <p className="text-matrix-primary/70 text-sm">
-                    The iconic green on black theme from the original Matrix.
-                  </p>
+            <div className="flex justify-between items-center">
+              <h3 className="text-matrix-primary font-bold">Dark/Light Mode</h3>
+              <div className="flex items-center space-x-2">
+                <Sun size={16} className={`${!isDark ? 'text-matrix-primary' : 'text-matrix-primary/40'}`} />
+                <div 
+                  className={`w-12 h-6 rounded-full p-1 cursor-pointer ${isDark ? 'bg-matrix-primary' : 'bg-matrix-primary/30'}`}
+                  onClick={() => setIsDark(!isDark)}
+                >
+                  <div 
+                    className={`w-4 h-4 rounded-full transition-all ${isDark ? 'bg-black ml-6' : 'bg-matrix-primary/80 ml-0'}`}
+                  />
                 </div>
-              </div>
-              
-              <div className="col-span-3 md:col-span-1">
-                <div className={`border-2 rounded-md p-4 ${theme.themeNumber === 2 ? 'border-matrix-primary shadow-glow' : 'border-matrix-primary/30'}`}>
-                  <h3 className="text-matrix-primary font-bold mb-2">Soft Ivory</h3>
-                  <p className="text-matrix-primary/70 text-sm">
-                    A softer contrast with ivory text on dark background.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="col-span-3 md:col-span-1">
-                <div className={`border-2 rounded-md p-4 ${theme.themeNumber === 3 ? 'border-matrix-primary shadow-glow' : 'border-matrix-primary/30'}`}>
-                  <h3 className="text-matrix-primary font-bold mb-2">Amber Alert</h3>
-                  <p className="text-matrix-primary/70 text-sm">
-                    Warm amber glow reminiscent of vintage terminals.
-                  </p>
-                </div>
+                <Moon size={16} className={`${isDark ? 'text-matrix-primary' : 'text-matrix-primary/40'}`} />
               </div>
             </div>
           </motion.div>
@@ -217,15 +241,26 @@ const Themes = () => {
                 </p>
               </div>
               
-              <div className={`matrix-card p-4 ${enableCrtFlicker ? 'flicker-effect' : ''}`}>
-                <h3 className="text-matrix-primary font-bold mb-2">Preview</h3>
-                <p className="text-matrix-primary/70">
-                  This card shows how the CRT flicker effect will appear on hover.
-                </p>
-                <div className="flex justify-center mt-4">
-                  <Lightbulb size={32} className="text-matrix-primary" />
+              <MatrixHoverCard
+                trigger={
+                  <div className={`matrix-card p-4 cursor-pointer ${enableCrtFlicker ? 'flicker-effect' : ''}`}>
+                    <h3 className="text-matrix-primary font-bold mb-2">Hover for Preview</h3>
+                    <p className="text-matrix-primary/70">
+                      This card shows how the CRT flicker effect will appear.
+                    </p>
+                    <div className="flex justify-center mt-4">
+                      <Lightbulb size={32} className="text-matrix-primary" />
+                    </div>
+                  </div>
+                }
+              >
+                <div className="p-2">
+                  <h4 className="text-matrix-primary font-bold mb-1">CRT Effect</h4>
+                  <p className="text-matrix-primary/70 text-sm">
+                    Creates a nostalgic retro terminal feel with subtle screen flicker
+                  </p>
                 </div>
-              </div>
+              </MatrixHoverCard>
             </div>
           </motion.div>
           
