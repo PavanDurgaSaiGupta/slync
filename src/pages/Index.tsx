@@ -46,7 +46,7 @@ const Index: React.FC = () => {
     console.log("Index component - repo status:", repo ? "Connected" : "Not connected");
     console.log("Index component - token status:", token ? "Available" : "Not available");
     console.log("Index component - octokit status:", octokit ? "Available" : "Not available");
-  }, [user, token, octokit, navigate]);
+  }, [user, token, octokit, navigate, repo]);
   
   // Typing effect for the terminal
   useEffect(() => {
@@ -102,8 +102,13 @@ const Index: React.FC = () => {
       toast.loading("Connecting to repository...");
       await connectRepo(repoUrl);
       
-      // Show success toast even if we return early
-      toast.success("Successfully connected to repository!");
+      // Check if repo was actually set after the connection attempt
+      const currentRepo = useAuthStore.getState().repo;
+      if (currentRepo) {
+        toast.success("Successfully connected to repository!");
+      } else {
+        toast.error("Failed to connect to repository. Please check your URL and permissions.");
+      }
     } catch (e) {
       console.error("Error connecting to repository:", e);
       toast.error(e instanceof Error ? e.message : "Failed to connect to repository");

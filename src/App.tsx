@@ -1,11 +1,10 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { useAuthStore } from './store/authStore';
 import { useTheme } from './hooks/useTheme';
-import ThemeSwitcher from './components/ThemeSwitcher';
 
 // Pages
 import Index from './pages/Index';
@@ -19,39 +18,83 @@ import ImportExport from './pages/ImportExport';
 import GitCommands from './pages/GitCommands';
 import NotFound from './pages/NotFound';
 
-function App() {
-  const { user } = useAuthStore();
-  const { theme, setTheme } = useTheme();
-
-  // Protected route component
-  const Protected = ({ children }: { children: React.ReactNode }) => {
-    if (!user) {
-      return <Navigate to="/authentication" replace />;
+// Protected route wrapper component
+const ProtectedRoute = ({ children, requireRepo = false }: { children: React.ReactNode, requireRepo?: boolean }) => {
+  const { user, token, repo } = useAuthStore();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!user || !token) {
+      navigate('/authentication');
+    } else if (requireRepo && !repo) {
+      navigate('/');
+      // Show toast notification
+      const showToast = async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const { toast } = await import('sonner');
+        toast.error('Please connect a repository first');
+      };
+      showToast();
     }
-    return <>{children}</>;
-  };
+  }, [user, token, repo, navigate, requireRepo]);
+
+  // If not authenticated, render nothing while redirecting
+  if (!user || !token) return null;
+  
+  // If repo is required but not connected, render nothing while redirecting
+  if (requireRepo && !repo) return null;
+  
+  return <>{children}</>;
+};
+
+function App() {
+  const { theme } = useTheme();
 
   return (
     <Router>
-      <ThemeSwitcher 
-        currentTheme={theme ? theme.themeNumber : 1} 
-        onChange={(themeNumber) => {
-          if (setTheme) {
-            setTheme({ ...theme, themeNumber });
-          }
-        }} 
-      />
-      
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/authentication" element={<Authentication />} />
         <Route path="/how-to-use" element={<HowToUse />} />
-        <Route path="/bookmarks" element={<Bookmarks />} />
-        <Route path="/todos" element={<Todos />} />
-        <Route path="/notes" element={<Notes />} />
-        <Route path="/themes" element={<Themes />} />
-        <Route path="/import-export" element={<ImportExport />} />
-        <Route path="/git-terminal" element={<GitCommands />} />
+        
+        {/* Protected routes that require repository */}
+        <Route path="/bookmarks" element={
+          <ProtectedRoute requireRepo={true}>
+            <Bookmarks />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/todos" element={
+          <ProtectedRoute requireRepo={true}>
+            <Todos />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/notes" element={
+          <ProtectedRoute requireRepo={true}>
+            <Notes />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/import-export" element={
+          <ProtectedRoute requireRepo={true}>
+            <ImportExport />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/git-terminal" element={
+          <ProtectedRoute requireRepo={true}>
+            <GitCommands />
+          </ProtectedRoute>
+        } />
+        
+        {/* Protected routes that don't require repository */}
+        <Route path="/themes" element={
+          <ProtectedRoute>
+            <Themes />
+          </ProtectedRoute>
+        } />
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
       

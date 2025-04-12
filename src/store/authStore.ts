@@ -176,7 +176,8 @@ export const useAuthStore = create<AuthState>()(
             // Update state with repo info
             set({ 
               repo: repoData,
-              isLoading: false
+              isLoading: false,
+              error: null
             });
             
             // Save to persistent storage
@@ -242,16 +243,26 @@ export const useAuthStore = create<AuthState>()(
             
             toast.success('Repository connected and initialized successfully!');
             
+            // Verify repo is properly set in state
+            const currentRepo = get().repo;
+            if (!currentRepo) {
+              set({ error: 'Failed to save repository information' });
+              throw new Error('Failed to save repository information');
+            }
+            
             // Setup auto-sync timer
             setupAutoSync();
+            
+            return;
             
           } catch (e) {
             console.error('Error connecting to repository:', e);
             set({ 
+              repo: null,
               error: 'Repository not found or access denied. Check your token permissions.',
               isLoading: false
             });
-            toast.error('Repository not found or access denied. Check your token permissions.');
+            throw new Error('Repository not found or access denied. Check your token permissions.');
           }
         } catch (e) {
           console.error('Error in connectRepo:', e);
@@ -259,7 +270,7 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : 'Failed to connect to repository',
             isLoading: false
           });
-          toast.error(e instanceof Error ? e.message : 'Failed to connect to repository');
+          throw e; // Propagate the error
         }
       },
       
@@ -373,7 +384,7 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : 'Failed to save to repository',
             isLoading: false
           });
-          toast.error(e instanceof Error ? e.message : 'Failed to save to repository');
+          throw new Error(e instanceof Error ? e.message : 'Failed to save to repository');
         }
       },
       
@@ -427,7 +438,6 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : `Failed to get content from '${path}'`,
             isLoading: false
           });
-          toast.error(e instanceof Error ? e.message : `Failed to get content from '${path}'`);
           return null;
         }
       },
@@ -478,8 +488,7 @@ export const useAuthStore = create<AuthState>()(
             error: e instanceof Error ? e.message : `Failed to list contents from '${path}'`,
             isLoading: false
           });
-          toast.error(e instanceof Error ? e.message : `Failed to list contents from '${path}'`);
-          return [];
+          throw new Error(e instanceof Error ? e.message : `Failed to list contents from '${path}'`);
         }
       },
       
@@ -543,6 +552,29 @@ const initStore = () => {
     console.log('Recreating Octokit instance from saved token');
     const newOctokit = new Octokit({ auth: token });
     useAuthStore.setState({ octokit: newOctokit });
+    
+    // If we have a repository, verify it's still accessible
+    if (repo) {
+      const verifyRepo = async () => {
+        try {
+          await newOctokit.rest.repos.get({
+            owner: repo.owner,
+            repo: repo.name,
+          });
+          console.log('Repository access verified on init');
+        } catch (e) {
+          console.error('Error verifying repository access:', e);
+          // Clear repo info if we can't access it
+          useAuthStore.setState({ 
+            repo: null, 
+            error: 'Lost access to repository. Please reconnect.' 
+          });
+          toast.error('Lost access to repository. Please reconnect.');
+        }
+      };
+      
+      verifyRepo();
+    }
   }
   
   if (repo && token) {
