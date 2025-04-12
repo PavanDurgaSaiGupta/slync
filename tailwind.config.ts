@@ -65,28 +65,19 @@ export default {
 				},
 				// Matrix theme colors
 				matrix: {
-					primary: '#00FF44',
-					secondary: '#0D7377',
+					primary: 'var(--theme-primary, #00FF44)',
+					secondary: 'var(--theme-secondary, #0D7377)',
 					background: '#0A0E0E',
 					accent: '#05FF00',
 					muted: '#323232',
 				},
-				// Theme variants
+				// Theme variants - simplified to 5 core themes
 				theme: {
 					'1': { primary: '#00FF44', secondary: '#0D7377' }, // Matrix default
-					'2': { primary: '#EFE9E0', secondary: '#0F9E99' }, // Soft Ivory & Tropical Teal
-					'3': { primary: '#FBA002', secondary: '#313B2F' }, // Bright Orange & Deep Olive Green
-					'4': { primary: '#8B5CF6', secondary: '#C4B5FD' }, // Purple vibes
-					'5': { primary: '#F97316', secondary: '#FDBA74' }, // Warm orange
-					'6': { primary: '#0EA5E9', secondary: '#BAE6FD' }, // Ocean blue
-					'7': { primary: '#10B981', secondary: '#A7F3D0' }, // Fresh green
-					'8': { primary: '#EC4899', secondary: '#FBCFE8' }, // Pink delight
-					'9': { primary: '#F43F5E', secondary: '#FECDD3' }, // Energetic red
-					'10': { primary: '#06B6D4', secondary: '#99F6E4' }, // Turquoise
-					'11': { primary: '#FBBF24', secondary: '#FDE68A' }, // Sunny yellow
-					'12': { primary: '#8B5CF6', secondary: '#DDD6FE' }, // Lavender
-					'13': { primary: '#14B8A6', secondary: '#5EEAD4' }, // Teal
-					'14': { primary: '#9333EA', secondary: '#D8B4FE' }, // Royal purple
+					'2': { primary: '#5D80FE', secondary: '#1D3057' }, // Neo Blue
+					'3': { primary: '#FF71C5', secondary: '#8C4573' }, // Cyber Pink
+					'4': { primary: '#ECDB54', secondary: '#8C7A28' }, // Amber Gold
+					'5': { primary: '#9B87F5', secondary: '#433A68' }, // Purple Neon
 				}
 			},
 			borderRadius: {
@@ -104,8 +95,10 @@ export default {
 					to: { height: '0' }
 				},
 				'matrix-rain': {
-					'0%': { transform: 'translateY(-100vh)', opacity: '1' },
-					'100%': { transform: 'translateY(100vh)', opacity: '0.3' }
+					'0%': { transform: 'translateY(-100vh)', opacity: '0' },
+					'10%': { opacity: '1' },
+					'90%': { opacity: '0.8' },
+					'100%': { transform: 'translateY(100vh)', opacity: '0' }
 				},
 				'fade-in': {
 					'0%': { opacity: '0', transform: 'translateY(10px)' },
@@ -120,8 +113,8 @@ export default {
 					'20%, 21.999%, 63%, 63.999%, 65%, 69.999%': { opacity: '0.4' }
 				},
 				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 5px 2px rgba(0, 255, 68, 0.7)' },
-					'50%': { boxShadow: '0 0 15px 5px rgba(0, 255, 68, 0.9)' }
+					'0%, 100%': { boxShadow: '0 0 5px 2px rgba(var(--theme-primary-rgb), 0.7)' },
+					'50%': { boxShadow: '0 0 15px 5px rgba(var(--theme-primary-rgb), 0.9)' }
 				},
 				'blink': {
 					'0%, 100%': { opacity: '1' },
@@ -146,6 +139,7 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'matrix-rain': 'matrix-rain 6s linear infinite',
 				'slower-matrix-rain': 'matrix-rain 10s linear infinite',
+				'faster-matrix-rain': 'matrix-rain 3s linear infinite',
 				'fade-in': 'fade-in 0.3s ease-out',
 				'zoom-in': 'zoom-in 0.3s ease-out',
 				'flicker': 'flicker 2s linear infinite',
@@ -156,9 +150,9 @@ export default {
 				'pulse-background': 'pulse-background 2s forwards'
 			},
 			boxShadow: {
-				'glow-sm': '0 0 5px 2px rgba(0, 255, 68, 0.3)',
-				'glow': '0 0 10px 3px rgba(0, 255, 68, 0.5)',
-				'glow-lg': '0 0 15px 5px rgba(0, 255, 68, 0.7)',
+				'glow-sm': '0 0 5px 2px rgba(var(--theme-primary-rgb, 0, 255, 68), 0.3)',
+				'glow': '0 0 10px 3px rgba(var(--theme-primary-rgb, 0, 255, 68), 0.5)',
+				'glow-lg': '0 0 15px 5px rgba(var(--theme-primary-rgb, 0, 255, 68), 0.7)',
 			},
 			fontFamily: {
 				'matrix': ['VT323', 'monospace', 'ui-monospace', 'SFMono-Regular'],

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type ThemeType = {
@@ -52,9 +53,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       document.documentElement.classList.remove('enable-flicker');
     }
     
+    // Update RGB variables for animations and effects
+    const primaryColor = getThemeColor(theme.themeNumber);
+    const rgbValues = hexToRgb(primaryColor);
+    if (rgbValues) {
+      document.documentElement.style.setProperty('--theme-primary-rgb', `${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}`);
+    }
+    
     // Save theme to localStorage
     localStorage.setItem('slync-theme', JSON.stringify(theme));
   }, [theme]);
+
+  // Helper function to convert hex to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
 
   const setTheme = (newThemeProps: Partial<ThemeType>) => {
     setThemeState(prevTheme => ({ ...prevTheme, ...newThemeProps }));

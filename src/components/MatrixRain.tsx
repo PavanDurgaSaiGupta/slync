@@ -13,12 +13,24 @@ const MatrixRain: React.FC<{ speed?: 'slow' | 'normal' | 'fast' }> = ({ speed = 
     // Clear any existing content
     container.innerHTML = '';
     
+    // Define duration based on speed
+    const getDuration = () => {
+      switch (speed) {
+        case 'slow': return () => 10 + Math.random() * 15; // 10-25s
+        case 'fast': return () => 3 + Math.random() * 5;   // 3-8s
+        case 'normal':
+        default: return () => 5 + Math.random() * 10;      // 5-15s
+      }
+    };
+    
+    const durationFn = getDuration();
+    
     // Create about 50 characters for the matrix rain
     for (let i = 0; i < 50; i++) {
       const character = document.createElement('div');
-      character.className = `matrix-rain-char animate-${speed === 'slow' ? 'slower-' : ''}matrix-rain`;
+      character.className = 'matrix-rain-char';
       character.style.left = `${Math.random() * width}px`;
-      character.style.animationDuration = `${5 + Math.random() * 10}s`;
+      character.style.animationDuration = `${durationFn()}s`;
       character.style.animationDelay = `${Math.random() * 5}s`;
       character.textContent = String.fromCharCode(0x30A0 + Math.random() * 96); // Japanese characters
       

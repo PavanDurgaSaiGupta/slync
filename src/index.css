@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=VT323&display=swap');
 
 @tailwind base;
@@ -51,56 +50,20 @@
     --theme-1-secondary: #0D7377;
     
     /* Theme 2 - Soft Ivory */
-    --theme-2-primary: #EFE9E0;
-    --theme-2-secondary: #0F9E99;
+    --theme-2-primary: #5D80FE;
+    --theme-2-secondary: #1D3057;
     
     /* Theme 3 - Amber */
-    --theme-3-primary: #FBA002;
-    --theme-3-secondary: #313B2F;
+    --theme-3-primary: #FF71C5;
+    --theme-3-secondary: #8C4573;
     
     /* Theme 4 - Purple */
-    --theme-4-primary: #8B5CF6;
-    --theme-4-secondary: #C4B5FD;
+    --theme-4-primary: #ECDB54;
+    --theme-4-secondary: #8C7A28;
     
     /* Theme 5 - Orange */
-    --theme-5-primary: #F97316;
-    --theme-5-secondary: #FDBA74;
-    
-    /* Theme 6 - Ocean Blue */
-    --theme-6-primary: #0EA5E9;
-    --theme-6-secondary: #BAE6FD;
-    
-    /* Theme 7 - Fresh Green */
-    --theme-7-primary: #10B981;
-    --theme-7-secondary: #A7F3D0;
-    
-    /* Theme 8 - Pink */
-    --theme-8-primary: #EC4899;
-    --theme-8-secondary: #FBCFE8;
-    
-    /* Theme 9 - Red */
-    --theme-9-primary: #F43F5E;
-    --theme-9-secondary: #FECDD3;
-    
-    /* Theme 10 - Turquoise */
-    --theme-10-primary: #06B6D4;
-    --theme-10-secondary: #99F6E4;
-    
-    /* Theme 11 - Yellow */
-    --theme-11-primary: #FBBF24;
-    --theme-11-secondary: #FDE68A;
-    
-    /* Theme 12 - Lavender */
-    --theme-12-primary: #8B5CF6;
-    --theme-12-secondary: #DDD6FE;
-    
-    /* Theme 13 - Teal */
-    --theme-13-primary: #14B8A6;
-    --theme-13-secondary: #5EEAD4;
-    
-    /* Theme 14 - Royal Purple */
-    --theme-14-primary: #9333EA;
-    --theme-14-secondary: #D8B4FE;
+    --theme-5-primary: #9B87F5;
+    --theme-5-secondary: #433A68;
     
     /* Default to theme 1 */
     --theme-primary: var(--theme-1-primary);
@@ -270,7 +233,13 @@
     transition: opacity 0.5s ease-in-out;
   }
   
-  .matrix-page-effect:hover ~ .matrix-page-background {
+  .matrix-page-effect:hover ~ .matrix-page-background,
+  .matrix-page-effect .matrix-page-background {
+    opacity: 0;
+    animation: pulse-background 2s 1 forwards;
+  }
+  
+  .matrix-page-effect:hover .matrix-page-background {
     opacity: 1;
     animation: pulse-background 2s 1 forwards;
   }
