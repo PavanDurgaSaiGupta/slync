@@ -329,7 +329,7 @@ const Index: React.FC = () => {
                 <motion.div
                   key={index}
                   variants={itemVariants}
-                  className={`matrix-card cursor-pointer ${theme.enableCrtFlicker ? 'flicker-effect' : ''} ${!item.enabled ? 'opacity-50' : ''}`}
+                  className={`matrix-card matrix-card-hover matrix-hover-effect cursor-pointer ${theme.enableCrtFlicker ? 'flicker-effect' : ''} ${!item.enabled ? 'opacity-50' : ''}`}
                   whileHover={{ scale: item.enabled ? 1.05 : 1 }}
                   whileTap={{ scale: item.enabled ? 0.95 : 1 }}
                   onClick={() => item.enabled && handleNavigation(item.path)}
