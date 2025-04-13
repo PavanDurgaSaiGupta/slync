@@ -81,7 +81,7 @@
 
 @layer components {
   .neon-border {
-    @apply border-2 border-matrix-primary/70 shadow-glow;
+    @apply border-2 border-matrix-primary-70 shadow-glow;
   }
   
   .neon-text {
@@ -89,11 +89,11 @@
   }
   
   .neon-button {
-    @apply bg-transparent text-matrix-primary border-2 border-matrix-primary/70 shadow-glow hover:shadow-glow-lg transition-shadow duration-300 rounded-md;
+    @apply bg-transparent text-matrix-primary border-2 border-matrix-primary-70 shadow-glow hover:shadow-glow-lg transition-shadow duration-300 rounded-md;
   }
   
   .matrix-glass {
-    @apply bg-matrix-background/60 backdrop-blur-sm border border-matrix-primary/20 shadow-glow-sm;
+    @apply bg-matrix-background/60 backdrop-blur-sm border border-matrix-primary-20 shadow-glow-sm;
   }
   
   .matrix-card {

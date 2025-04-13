@@ -63,9 +63,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Matrix theme colors
+				// Matrix theme colors - updated to fix opacity support
 				matrix: {
-					primary: 'var(--theme-primary, #00FF44)',
+					primary: {
+						DEFAULT: 'var(--theme-primary, #00FF44)',
+						'20': 'rgba(var(--theme-primary-rgb), 0.2)',
+						'30': 'rgba(var(--theme-primary-rgb), 0.3)',
+						'50': 'rgba(var(--theme-primary-rgb), 0.5)',
+						'60': 'rgba(var(--theme-primary-rgb), 0.6)',
+						'70': 'rgba(var(--theme-primary-rgb), 0.7)',
+						'80': 'rgba(var(--theme-primary-rgb), 0.8)',
+						'90': 'rgba(var(--theme-primary-rgb), 0.9)',
+					},
 					secondary: 'var(--theme-secondary, #0D7377)',
 					background: '#0A0E0E',
 					accent: '#05FF00',

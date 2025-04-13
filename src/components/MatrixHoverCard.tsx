@@ -27,7 +27,7 @@ const MatrixHoverCard: React.FC<MatrixHoverCardProps> = ({
       <HoverCardContent 
         side={side} 
         align={align}
-        className="matrix-glass border border-matrix-primary/30 p-4 z-50"
+        className="matrix-glass border border-matrix-primary-30 p-4 z-50"
       >
         <motion.div
           initial={{ opacity: 0, y: 5 }}
