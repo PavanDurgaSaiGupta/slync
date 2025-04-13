@@ -1,180 +1,203 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, LogIn, Mail, Lock } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, User, Mail, Key, Lock, Code, Info } from 'lucide-react';
+import { toast } from 'sonner';
+
 import NeonButton from '@/components/NeonButton';
 import NeonInput from '@/components/NeonInput';
-import MatrixRain from '@/components/MatrixRain';
 import GlitchText from '@/components/GlitchText';
+import MatrixRain from '@/components/MatrixRain';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
 
-enum AuthMode {
-  SIGN_IN = 'sign_in',
-  SIGN_UP = 'sign_up',
-}
-
-const Auth: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, isLoading, signIn, signUp } = useAuth();
-  const { theme } = useTheme();
-  
-  const [authMode, setAuthMode] = useState<AuthMode>(AuthMode.SIGN_IN);
+const Auth = () => {
+  // Form states
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [localLoading, setLocalLoading] = useState(false);
+  const [username, setUsername] = useState('');
   
-  // Redirect to home if already authenticated
+  // UI states
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { theme } = useTheme();
+  const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
+    // If user is authenticated, redirect to home
     if (user) {
       navigate('/');
+      return;
     }
   }, [user, navigate]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalLoading(true);
+    setIsLoading(true);
     
     try {
-      if (authMode === AuthMode.SIGN_UP) {
-        if (password !== confirmPassword) {
-          throw new Error('Passwords do not match');
+      let success = false;
+      
+      if (isRegistering) {
+        if (!email || !password || !username) {
+          toast.error('Please fill all fields');
+          setIsLoading(false);
+          return;
         }
         
-        await signUp(email, password);
+        // Register new user
+        success = await signUp(email, password);
+        if (success) {
+          toast.info('Please check your email to confirm your account. You can disable email confirmation in your Supabase dashboard for testing purposes.');
+        }
       } else {
-        await signIn(email, password);
+        if (!email || !password) {
+          toast.error('Please enter your email and password');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Log in existing user
+        success = await signIn(email, password);
+        if (success) {
+          navigate('/');
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Authentication error:', error);
+      toast.error(error.message || 'Authentication failed');
     } finally {
-      setLocalLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  const toggleAuthMode = () => {
-    setAuthMode(authMode === AuthMode.SIGN_IN ? AuthMode.SIGN_UP : AuthMode.SIGN_IN);
-    setPassword('');
-    setConfirmPassword('');
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSubmit(e as unknown as React.FormEvent);
+    }
   };
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-matrix-primary text-2xl">Loading...</div>
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="min-h-screen bg-matrix-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-matrix-background">
       {theme.showCodeRain && <MatrixRain speed={theme.speed} />}
       
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8 text-center"
-      >
-        <GlitchText variant="title" text={authMode === AuthMode.SIGN_IN ? 'Access Terminal' : 'New User Registration'} />
-        <p className="text-matrix-primary-70 mt-2">
-          {authMode === AuthMode.SIGN_IN 
-            ? 'Enter your credentials to connect' 
-            : 'Register to access the Slync Terminal'}
-        </p>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md"
-      >
-        <form onSubmit={handleSubmit} className="matrix-card">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-matrix-primary mb-2">Email</label>
-              <NeonInput
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                icon={<Mail size={18} />}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-matrix-primary mb-2">Password</label>
-              <NeonInput
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                icon={<Lock size={18} />}
-              />
-            </div>
-            
-            {authMode === AuthMode.SIGN_UP && (
-              <div>
-                <label className="block text-matrix-primary mb-2">Confirm Password</label>
-                <NeonInput
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  icon={<Lock size={18} />}
-                />
-              </div>
-            )}
-            
-            <div className="flex flex-col space-y-4">
-              <NeonButton
-                type="submit"
-                disabled={isLoading || localLoading}
-                className="w-full"
+      <div className="container mx-auto px-4 h-screen flex flex-col items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <motion.div 
+                className="p-4 rounded-full border-2 border-matrix-primary shadow-glow"
+                animate={{ boxShadow: ['0 0 10px 2px var(--theme-primary)', '0 0 20px 5px var(--theme-primary)', '0 0 10px 2px var(--theme-primary)'] }}
+                transition={{ duration: 3, repeat: Infinity }}
               >
-                {localLoading ? (
-                  <span className="animate-pulse">Processing...</span>
-                ) : authMode === AuthMode.SIGN_IN ? (
-                  <div className="flex items-center justify-center">
-                    <LogIn size={18} className="mr-2" />
-                    Sign In
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <User size={18} className="mr-2" />
-                    Create Account
+                <Code size={40} className="text-matrix-primary" />
+              </motion.div>
+            </div>
+            <GlitchText text="SLYNC" variant="title" className="mb-2" />
+            <p className="text-matrix-primary/70">Sync your data with Supabase</p>
+          </div>
+          
+          <div className="matrix-card">
+            <div className="space-y-6">
+              <div className="flex justify-center mb-6">
+                <div className="p-3 bg-black/50 rounded-full border-2 border-matrix-primary">
+                  <User size={32} className="text-matrix-primary" />
+                </div>
+              </div>
+              
+              <h2 className="text-xl font-bold text-center text-matrix-primary mb-6">
+                {isRegistering ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-matrix-primary/80 mb-2 flex items-center">
+                    <Mail size={16} className="mr-2" />
+                    Email
+                  </label>
+                  <NeonInput
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Enter your email"
+                    icon={<Mail size={18} />}
+                  />
+                </div>
+                
+                {isRegistering && (
+                  <div>
+                    <label className="block text-matrix-primary/80 mb-2 flex items-center">
+                      <User size={16} className="mr-2" />
+                      Username
+                    </label>
+                    <NeonInput
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Choose a username"
+                      icon={<User size={18} />}
+                    />
                   </div>
                 )}
-              </NeonButton>
+                
+                <div>
+                  <label className="block text-matrix-primary/80 mb-2 flex items-center">
+                    <Lock size={16} className="mr-2" />
+                    Password
+                  </label>
+                  <NeonInput
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Enter your password"
+                    icon={<Lock size={18} />}
+                  />
+                </div>
+                
+                <NeonButton 
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || authLoading}
+                >
+                  {isLoading || authLoading ? 'Processing...' : isRegistering ? 'Register' : 'Login'}
+                  {!isLoading && !authLoading && <ArrowRight size={16} className="ml-2" />}
+                </NeonButton>
+              </form>
               
-              <button
-                type="button"
-                onClick={toggleAuthMode}
-                className="text-matrix-primary-70 hover:text-matrix-primary text-sm transition-colors"
+              <div className="text-center">
+                <button 
+                  className="text-matrix-primary/70 hover:text-matrix-primary text-sm"
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  type="button"
+                >
+                  {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <NeonButton 
+                onClick={() => navigate('/how-to-use')} 
+                secondary 
+                className="w-full"
               >
-                {authMode === AuthMode.SIGN_IN
-                  ? "Don't have an account? Sign Up"
-                  : "Already have an account? Sign In"}
-              </button>
+                <Info size={16} className="mr-2" />
+                How to Use This App
+              </NeonButton>
             </div>
           </div>
-        </form>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="mt-8 text-center"
-      >
-        <p className="text-matrix-primary-50 text-sm">
-          Powered by Slync Terminal • Secure Access Protocol
-        </p>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 };

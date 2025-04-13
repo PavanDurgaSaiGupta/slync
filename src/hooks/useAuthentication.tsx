@@ -3,13 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-
-export interface AuthState {
-  user: User | null;
-  session: Session | null;
-  isLoading: boolean;
-  error: string | null;
-}
+import { AuthState } from '@/types/auth';
 
 export const useAuthentication = () => {
   const [authState, setAuthState] = useState<AuthState>({
