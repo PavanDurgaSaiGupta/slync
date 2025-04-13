@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AuthState } from '@/types/auth';
+import { AuthState, SignUpResult } from '@/types/auth';
 
 export const useAuthentication = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -48,7 +49,7 @@ export const useAuthentication = () => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string): Promise<SignUpResult> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {

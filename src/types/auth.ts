@@ -8,6 +8,12 @@ export interface AuthState {
   error: string | null;
 }
 
+export interface SignUpResult {
+  success: boolean;
+  email?: string;
+  password?: string;
+}
+
 export interface Bookmark {
   id: string;
   user_id: string;
