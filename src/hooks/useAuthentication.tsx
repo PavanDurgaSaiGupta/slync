@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -53,14 +52,33 @@ export const useAuthentication = () => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          // Skip email confirmation
+          emailRedirectTo: undefined,
+          data: {
+            email_confirmed: true
+          }
+        }
       });
       
       if (error) throw error;
       
-      toast.success('Registration successful! Please check your email to confirm your account.');
+      // Download credentials as CSV
+      const credentials = `Email,Password\n${email},${password}`;
+      const blob = new Blob([credentials], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'slync_credentials.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Registration successful! Your credentials have been downloaded.');
+      return { success: true, email, password };
     } catch (error: any) {
       setAuthState(prev => ({ 
         ...prev, 
@@ -68,11 +86,10 @@ export const useAuthentication = () => {
         isLoading: false 
       }));
       toast.error(error.message || 'Failed to sign up');
-      return false;
+      return { success: false };
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
-    
-    setAuthState(prev => ({ ...prev, isLoading: false }));
-    return true;
   };
 
   const signIn = async (email: string, password: string) => {

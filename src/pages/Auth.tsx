@@ -39,8 +39,6 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      let success = false;
-      
       if (isRegistering) {
         if (!email || !password || !username) {
           toast.error('Please fill all fields');
@@ -49,9 +47,13 @@ const Auth = () => {
         }
         
         // Register new user
-        success = await signUp(email, password);
-        if (success) {
-          toast.info('Please check your email to confirm your account. You can disable email confirmation in your Supabase dashboard for testing purposes.');
+        const result = await signUp(email, password);
+        if (result.success) {
+          // Automatically switch to login mode and pre-fill credentials
+          setIsRegistering(false);
+          
+          // Don't automatically sign in, just prepare the login form
+          toast.info('Please sign in with your new account');
         }
       } else {
         if (!email || !password) {
@@ -61,7 +63,7 @@ const Auth = () => {
         }
         
         // Log in existing user
-        success = await signIn(email, password);
+        const success = await signIn(email, password);
         if (success) {
           navigate('/');
         }
