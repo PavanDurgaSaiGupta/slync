@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -50,9 +51,10 @@ const Auth = () => {
         if (result.success) {
           // Automatically switch to login mode and pre-fill credentials
           setIsRegistering(false);
+          setEmail(email);
           
-          // Don't automatically sign in, just prepare the login form
-          toast.info('Please sign in with your new account');
+          // Directly allow login
+          toast.info('Registration successful. Please log in.');
         }
       } else {
         if (!email || !password) {
