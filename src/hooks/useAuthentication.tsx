@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { AuthState, SignUpResult } from '@/types/auth';
+import { useAuthStore } from '@/store/authStore';
 
 export const useAuthentication = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -12,6 +13,9 @@ export const useAuthentication = () => {
     isLoading: true,
     error: null,
   });
+
+  // Initialize GitHub integration hooks
+  const { setToken, connectRepo } = useAuthStore();
 
   useEffect(() => {
     // Set up the auth state listener first
@@ -53,12 +57,11 @@ export const useAuthentication = () => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // No email verification required - simplified signup process
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Skip email confirmation
-          emailRedirectTo: undefined,
           data: {
             email_confirmed: true
           }
@@ -79,7 +82,13 @@ export const useAuthentication = () => {
       document.body.removeChild(link);
       
       toast.success('Registration successful! Your credentials have been downloaded.');
-      return { success: true, email, password };
+      
+      // Return successful signup with credentials for the GitHub flow
+      return { 
+        success: true, 
+        email, 
+        password 
+      };
     } catch (error: any) {
       setAuthState(prev => ({ 
         ...prev, 
@@ -103,6 +112,11 @@ export const useAuthentication = () => {
       });
       
       if (error) throw error;
+      
+      // After successful login, prompt for GitHub token and repo
+      toast.info('Please connect to GitHub on the next page to complete setup');
+      
+      return true;
     } catch (error: any) {
       setAuthState(prev => ({ 
         ...prev, 
@@ -112,9 +126,6 @@ export const useAuthentication = () => {
       toast.error(error.message || 'Failed to sign in');
       return false;
     }
-    
-    setAuthState(prev => ({ ...prev, isLoading: false }));
-    return true;
   };
 
   const signOut = async () => {
@@ -123,6 +134,9 @@ export const useAuthentication = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Also clear GitHub connection
+      useAuthStore.getState().logout();
     } catch (error: any) {
       setAuthState(prev => ({ 
         ...prev, 

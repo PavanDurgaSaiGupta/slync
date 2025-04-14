@@ -4,11 +4,14 @@ import { motion } from 'framer-motion';
 import { Code } from 'lucide-react';
 import GlitchText from '@/components/GlitchText';
 import MatrixRain from '@/components/MatrixRain';
-import { ThemeSettings } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  theme: ThemeSettings;
+  theme: {
+    showCodeRain: boolean;
+    speed: number;
+  };
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children, theme }) => {
@@ -33,7 +36,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, theme }) => {
               </motion.div>
             </div>
             <GlitchText text="SLYNC" variant="title" className="mb-2" />
-            <p className="text-matrix-primary/70">Sync your data with Supabase</p>
+            <p className="text-matrix-primary/70">Sync your data with GitHub</p>
           </div>
           
           <div className="matrix-card">

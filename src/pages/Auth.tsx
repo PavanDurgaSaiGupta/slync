@@ -8,6 +8,7 @@ import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { SignUpResult } from '@/types/auth';
 
 const Auth = () => {
   // UI states
@@ -26,7 +27,7 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const handleRegister = async (email: string, password: string, username: string) => {
+  const handleRegister = async (email: string, password: string, username: string): Promise<SignUpResult> => {
     setIsLoading(true);
     
     try {
@@ -38,9 +39,11 @@ const Auth = () => {
         // Inform user registration was successful
         toast.info('Registration successful. Please log in.');
       }
+      return result;
     } catch (error: any) {
       console.error('Registration error:', error);
       toast.error(error.message || 'Registration failed');
+      return { success: false };
     } finally {
       setIsLoading(false);
     }

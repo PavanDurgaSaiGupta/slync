@@ -2,12 +2,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuthentication } from '@/hooks/useAuthentication';
 import { User, Session } from '@supabase/supabase-js';
-
-interface SignUpResult {
-  success: boolean;
-  email?: string;
-  password?: string;
-}
+import { SignUpResult } from '@/types/auth';
 
 interface AuthContextType {
   user: User | null;
