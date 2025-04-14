@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import Index from '@/pages/Index';
@@ -34,6 +34,8 @@ function App() {
             <Route path="/themes" element={<Themes />} />
             <Route path="/import-export" element={<ImportExport />} />
             <Route path="/git-commands" element={<GitCommands />} />
+            {/* Add redirect from the old authentication page to the new auth page */}
+            <Route path="/authentication" element={<Navigate to="/auth" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
