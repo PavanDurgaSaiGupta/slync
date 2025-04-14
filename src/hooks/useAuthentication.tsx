@@ -57,7 +57,7 @@ export const useAuthentication = () => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // No email verification required - simplified signup process
+      // No email verification required - direct signup with auto-confirm
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

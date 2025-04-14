@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Code } from 'lucide-react';
 import GlitchText from '@/components/GlitchText';
 import MatrixRain from '@/components/MatrixRain';
-import { useTheme } from '@/hooks/useTheme';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
