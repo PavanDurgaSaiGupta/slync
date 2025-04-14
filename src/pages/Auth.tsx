@@ -9,6 +9,7 @@ import RegisterForm from '@/components/auth/RegisterForm';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignUpResult } from '@/types/auth';
+import { useAuthStore } from '@/store/authStore';
 
 const Auth = () => {
   // UI states
@@ -17,15 +18,22 @@ const Auth = () => {
   
   const { theme } = useTheme();
   const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const { token } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If user is authenticated, redirect to home
-    if (user) {
+    // If user is authenticated but no GitHub token, redirect to GitHub setup
+    if (user && !token) {
+      navigate('/github-setup');
+      return;
+    }
+    
+    // If user is fully authenticated with GitHub token, redirect to home
+    if (user && token) {
       navigate('/');
       return;
     }
-  }, [user, navigate]);
+  }, [user, token, navigate]);
 
   const handleRegister = async (email: string, password: string, username: string): Promise<SignUpResult> => {
     setIsLoading(true);
@@ -33,11 +41,10 @@ const Auth = () => {
     try {
       const result = await signUp(email, password);
       if (result.success) {
-        // Automatically switch to login mode and pre-fill credentials
-        setIsRegistering(false);
+        // Log the user in automatically with the new credentials
+        await signIn(email, password);
         
-        // Inform user registration was successful
-        toast.info('Registration successful. Please log in.');
+        // Will be redirected to GitHub setup by the useEffect above
       }
       return result;
     } catch (error: any) {
@@ -55,7 +62,7 @@ const Auth = () => {
     try {
       const success = await signIn(email, password);
       if (success) {
-        navigate('/');
+        // Will be redirected by the useEffect above
         return true;
       }
       return false;
@@ -76,8 +83,14 @@ const Auth = () => {
     navigate('/how-to-use');
   };
 
+  // Convert theme.speed to the correct type for AuthLayout
+  const authLayoutTheme = {
+    showCodeRain: theme.showCodeRain,
+    speed: theme.speed as "slow" | "normal" | "fast"
+  };
+
   return (
-    <AuthLayout theme={theme}>
+    <AuthLayout theme={authLayoutTheme}>
       {isRegistering ? (
         <RegisterForm 
           onToggleMode={handleToggleMode}

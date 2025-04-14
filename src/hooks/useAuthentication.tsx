@@ -125,6 +125,8 @@ export const useAuthentication = () => {
       }));
       toast.error(error.message || 'Failed to sign in');
       return false;
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 

@@ -10,7 +10,7 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   theme: {
     showCodeRain: boolean;
-    speed: number;
+    speed: "slow" | "normal" | "fast";
   };
 }
 
