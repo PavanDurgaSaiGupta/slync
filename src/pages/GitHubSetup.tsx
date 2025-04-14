@@ -1,36 +1,38 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import AuthLayout from '@/components/auth/AuthLayout';
-import GitHubSetupForm from '@/components/auth/GitHubSetup';
+import GitHubSetupForm from '@/components/auth/GitHubSetupForm';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 const GitHubSetup = () => {
   const { theme } = useTheme();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { token } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If user is not authenticated, redirect to auth
+    // If not logged in, redirect to auth
     if (!user) {
       navigate('/auth');
       return;
     }
     
-    // If GitHub is already connected, redirect to home
+    // If already has GitHub token, redirect to home
     if (token) {
       navigate('/');
       return;
     }
   }, [user, token, navigate]);
 
-  const handleSetupComplete = () => {
-    toast.success('GitHub setup complete! You can now use SLYNC.');
+  const handleComplete = () => {
     navigate('/');
+  };
+
+  const handleHelp = () => {
+    navigate('/how-to-use');
   };
 
   // Convert theme.speed to the correct type for AuthLayout
@@ -42,8 +44,8 @@ const GitHubSetup = () => {
   return (
     <AuthLayout theme={authLayoutTheme}>
       <GitHubSetupForm 
-        onComplete={handleSetupComplete}
-        isLoading={authLoading}
+        onComplete={handleComplete} 
+        onHelp={handleHelp}
       />
     </AuthLayout>
   );
